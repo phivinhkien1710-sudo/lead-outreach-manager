@@ -29,15 +29,50 @@ flowchart TD
 
 | DocType | Purpose |
 |---|---|
-| `Company Profile` | One record per usable lead (tier A: verified domain + found generic contact). Mirrors the source pipeline's fields; `contact_points` rebuilt wholesale each import, `candidate_names` merge-appended so confirmations survive re-import. |
+| `Company Profile` | One record per usable lead (tier A: verified domain + found generic contact). Mirrors the source pipeline's fields; `contact_points` rebuilt wholesale each import, `candidate_names` merge-appended so confirmations survive re-import. `country` (Singapore/Vietnam) records which importer/pipeline a profile came from — see Importing leads below. |
 | `Company Contact Point` | Child table — read-only mirror of the source `contact_points` rows. |
-| `Company Candidate Name` | Child table — mirrors the source `candidate_names` rows plus the human confirmation gate (`confirmed`, `confirmed_by/_on`, linked `contact`). |
+| `Company Candidate Name` | Child table — mirrors the source `candidate_names` rows plus the human confirmation gate (`confirmed`, `confirmed_by/_on`, linked `contact`), and the classification/verification results described below. |
+| `Candidate Classification Run` | Tracks one batch pass of `services/candidate_classification.py` — the LLM-based person/not-person classification over unconfirmed candidate names. Status-tracked job doc, chunked, resumable. |
+| `Email Verification Run` | Tracks one batch pass of `services/email_verification.py` — MillionVerifier-backed deliverability checks over a confirmed candidate's guessed emails. Same status-tracked/chunked/resumable pattern. |
 | `Outreach Email` | One record per generate→verify→schedule cycle for a single contact. |
 | `Outreach Batch` | Self-imposed rate-limited/staggered scheduling across many `Outreach Email` records at once. |
-| `Outreach Settings` | Singleton — defaults (email template, sender account, rate limit, business hours). |
+| `Outreach Generation Run` | Tracks one bulk pass of `services/outreach_generation.py` — generates an `Outreach Email` draft for every auto-confirmed candidate that doesn't have one yet. |
+| `Outreach Settings` | Singleton — defaults (email template, sender account, rate limit, business hours) plus classification and verification configuration — see Outreach Settings below. |
 
 Contact attachment uses core Frappe's own `Contact.links` (`Dynamic Link`) mechanism — the same one
 Lead/Prospect/Customer already use — rather than a custom join doctype.
+
+## Dependencies
+
+`pyproject.toml` declares no third-party Python packages — the app runs on whatever's already in a
+standard Frappe/ERPNext bench (Frappe itself only, via `bench`).
+
+Two things are runtime dependencies but **not pip-installable**, since they're invoked as CLI
+subprocesses rather than imported: the `claude` CLI (required for candidate-name classification,
+`services/candidate_classification.py`) and optionally the `codex` CLI (fallback if `claude` fails).
+Both are billed via whatever subscription is already logged into on the machine — not a metered API
+key. `services.candidate_classification.discover_claude_cli`/`discover_codex_cli` auto-detect either
+from `PATH` or from the VS Code Claude Code / ChatGPT extension's bundled binary; if neither is
+reachable, classification runs will fail their CLI calls and abort after 3 consecutive failures
+(chunk-boundary-safe, resumable — see Design Decisions below). Whichever machine runs the background
+worker process needs one of these CLIs available, not just the machine running `bench`.
+
+This is separate from — and doesn't contradict — the "no LLM call" design decision below, which is
+specifically about the outreach **email generation** path (Jinja-only). Classification, a different
+pipeline stage, does call an LLM.
+
+`services/email_verification.py` similarly depends on a MillionVerifier account (pay-as-you-go, real
+API key in Outreach Settings) — that one *is* a metered service, unlike the CLI subscriptions above.
+
+## Scheduled Tasks
+
+One cron, registered in `hooks.py`'s `scheduler_events`, runs hourly:
+`lead_outreach_manager.tasks.hourly_reconcile_outreach_email_status` — reconciles each `Scheduled`
+`Outreach Email`'s outcome against its `Email Queue` row (Sent/Failed), since Email Queue's own flush
+cron sends asynchronously and never calls back into `Outreach Email` on its own. This depends on the
+site's scheduler being enabled (`bench --site <site> scheduler enable`, or unpaused) — if it's off,
+`Outreach Email` records will silently sit in `Scheduled` forever even after the underlying email
+actually sends.
 
 ## Design Decisions
 
@@ -96,15 +131,46 @@ Then, on `lead-outreach.local`:
 1. Configure an outgoing **Email Account** (`enable_outgoing=1`) — a real precondition, not something
    this app builds.
 2. Create at least one **Email Template** for outreach content.
-3. Optionally fill in **Outreach Settings** (default template, sender account, rate limit, business hours).
+3. Fill in **Outreach Settings** — see the full field list below. `default_email_template` and
+   `default_sender_email_account` are the only two anything downstream actually reads; everything
+   else has a working default.
+
+### Outreach Settings, in full
+
+**Defaults**: `default_email_template`, `default_sender_email_account`, `default_rate_limit_per_hour`
+(20), `default_business_hours_only` (on), `default_business_hours_start`/`_end` (9–18).
+
+**Candidate Name Classification**: `auto_classify_after_import` (**off** — classification is manual
+via `services.candidate_classification.enqueue_backfill` unless turned on), `classification_model`
+(`haiku`), `classification_chunk_size` (50), `classification_cli_timeout` (120s),
+`classification_cli_path`/`classification_fallback_cli_path`/`classification_fallback_model` (blank —
+auto-detects `claude`/`codex`, see Dependencies), `classification_min_confirm_confidence` (0.85),
+`classification_min_reject_confidence` (0.80), `recurrence_blacklist_threshold` (3 — names appearing on
+this many distinct profiles are auto-rejected as boilerplate).
+
+**Email Verification**: `auto_verify_after_classification` (**off**, same manual-unless-enabled
+pattern), `email_verification_api_key` (a real MillionVerifier key — https://app.millionverifier.com,
+pay-as-you-go, credits never expire but do need topping up), `email_verification_timeout` (20s),
+`email_verification_chunk_size` (50 — up to 6 API calls per row, `guessed_email_1`–`6`).
 
 ## Importing leads
 
+Two importers, one per source region, both idempotent (safe to re-run — each only adds what's new):
+
 ```bash
+# Singapore — reads the normalized companies/contact_points/candidate_names schema
 bench execute lead_outreach_manager.imports.company_profile_imports.import_usable_leads --kwargs "{'limit': 50}"
+
+# Vietnam — reads the flat `leads` table schema, only rows with both a domain and a representative_name
+bench execute lead_outreach_manager.imports.vietnam_lead_imports.import_vietnam_leads --kwargs "{'limit': 50}"
 ```
 
-Drop `limit` for a full, safe-to-repeat import of every currently-usable lead.
+Drop `limit` for a full import of everything currently usable/qualifying.
+
+Both importers default `sqlite_path` to a personal absolute path on the machine they were built on
+(`/Users/phikien/lead-intelligence-pipeline/databases/...`) — **this will not exist in a new
+environment.** Always pass `sqlite_path` explicitly, e.g.
+`--kwargs "{'sqlite_path': '/path/to/vietnam_leads.db'}"`.
 
 ## Generate → verify → schedule, in short
 
