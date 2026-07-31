@@ -1,0 +1,329 @@
+{
+ "creation": "2026-07-13 00:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "name_text",
+  "title_text",
+  "confirm_name",
+  "confirmed",
+  "confirmed_by",
+  "confirmed_on",
+  "contact",
+  "guessed_email_1",
+  "guessed_pattern_1",
+  "guessed_email_2",
+  "guessed_pattern_2",
+  "guessed_email_3",
+  "guessed_pattern_3",
+  "guessed_email_4",
+  "guessed_pattern_4",
+  "guessed_email_5",
+  "guessed_pattern_5",
+  "guessed_email_6",
+  "guessed_pattern_6",
+  "source_url",
+  "extraction_method",
+  "source_document_id",
+  "discovered_at",
+  "classification_section",
+  "classification_status",
+  "classification_method",
+  "confirmation_source",
+  "llm_verdict",
+  "llm_confidence",
+  "llm_model",
+  "llm_provider",
+  "classified_on",
+  "matched_contact_email",
+  "verification_section",
+  "verification_status",
+  "verified_email",
+  "verification_result",
+  "use_this_email",
+  "verified_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "name_text",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Name",
+   "read_only": 1
+  },
+  {
+   "fieldname": "title_text",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Title",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:!doc.confirmed",
+   "fieldname": "confirm_name",
+   "fieldtype": "Button",
+   "in_list_view": 1,
+   "label": "Confirm Name"
+  },
+  {
+   "default": "0",
+   "description": "Never set by the importer — set by a human via the Confirm Name button, or automatically by the classification funnel (see confirmation_source and services/candidate_classification.py).",
+   "fieldname": "confirmed",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Confirmed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "confirmed_by",
+   "fieldtype": "Link",
+   "label": "Confirmed By",
+   "options": "User",
+   "read_only": 1
+  },
+  {
+   "fieldname": "confirmed_on",
+   "fieldtype": "Datetime",
+   "label": "Confirmed On",
+   "read_only": 1
+  },
+  {
+   "description": "The Contact this confirmed name was applied to (see services/candidate_names.py) — the authoritative link used by outreach email generation.",
+   "fieldname": "contact",
+   "fieldtype": "Link",
+   "label": "Contact",
+   "options": "Contact",
+   "read_only": 1
+  },
+  {
+   "description": "Unverified guesses generated at confirmation time from name + Company Profile.domain (see services/email_guessing.py), ranked most-likely first. On a HUMAN confirm only, guessed_email_1 is also pushed onto the linked Contact as its primary email (the outreach recipient); automatic confirmations never redirect the recipient to a guess.",
+   "fieldname": "guessed_email_1",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Guessed Email 1",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_pattern_1",
+   "fieldtype": "Data",
+   "label": "Guessed Pattern 1",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_email_2",
+   "fieldtype": "Data",
+   "label": "Guessed Email 2",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_pattern_2",
+   "fieldtype": "Data",
+   "label": "Guessed Pattern 2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_email_3",
+   "fieldtype": "Data",
+   "label": "Guessed Email 3",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_pattern_3",
+   "fieldtype": "Data",
+   "label": "Guessed Pattern 3",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_email_4",
+   "fieldtype": "Data",
+   "label": "Guessed Email 4",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_pattern_4",
+   "fieldtype": "Data",
+   "label": "Guessed Pattern 4",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_email_5",
+   "fieldtype": "Data",
+   "label": "Guessed Email 5",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_pattern_5",
+   "fieldtype": "Data",
+   "label": "Guessed Pattern 5",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_email_6",
+   "fieldtype": "Data",
+   "label": "Guessed Email 6",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "guessed_pattern_6",
+   "fieldtype": "Data",
+   "label": "Guessed Pattern 6",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_url",
+   "fieldtype": "Data",
+   "label": "Source URL",
+   "read_only": 1
+  },
+  {
+   "fieldname": "extraction_method",
+   "fieldtype": "Data",
+   "label": "Extraction Method",
+   "read_only": 1
+  },
+  {
+   "description": "Combined with Name, reproduces the source SQLite table's own UNIQUE(company_id, name_text, source_document_id) key — used by the importer to detect already-staged rows on re-import without touching confirmed ones.",
+   "fieldname": "source_document_id",
+   "fieldtype": "Int",
+   "label": "Source Document ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "discovered_at",
+   "fieldtype": "Datetime",
+   "label": "Discovered At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "classification_section",
+   "fieldtype": "Section Break",
+   "label": "Classification"
+  },
+  {
+   "description": "Set by the automated classification funnel (services/candidate_classification.py). Empty = never classified; Error rows are retried on the next run.",
+   "fieldname": "classification_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Classification Status",
+   "options": "\nAuto Confirmed\nAuto Rejected\nNeeds Review\nError",
+   "read_only": 1
+  },
+  {
+   "description": "Which funnel pass decided: cross-corpus recurrence blacklist, scraped-contact-point email match, or the CLI Claude classifier.",
+   "fieldname": "classification_method",
+   "fieldtype": "Select",
+   "label": "Classification Method",
+   "options": "\nBlacklist\nEmail Match\nLLM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "confirmation_source",
+   "fieldtype": "Select",
+   "label": "Confirmation Source",
+   "options": "\nHuman\nAuto - Email Match\nAuto - LLM",
+   "read_only": 1
+  },
+  {
+   "fieldname": "llm_verdict",
+   "fieldtype": "Select",
+   "label": "LLM Verdict",
+   "options": "\nperson\nnot_person\nuncertain",
+   "read_only": 1
+  },
+  {
+   "fieldname": "llm_confidence",
+   "fieldtype": "Float",
+   "label": "LLM Confidence",
+   "precision": "2",
+   "read_only": 1
+  },
+  {
+   "fieldname": "llm_model",
+   "fieldtype": "Data",
+   "label": "LLM Model",
+   "read_only": 1
+  },
+  {
+   "description": "Which CLI actually produced this verdict — codex means the primary (claude) failed or hit its subscription usage limit on this chunk and the classifier automatically retried with the fallback CLI.",
+   "fieldname": "llm_provider",
+   "fieldtype": "Select",
+   "label": "LLM Provider",
+   "options": "\nclaude\ncodex",
+   "read_only": 1
+  },
+  {
+   "fieldname": "classified_on",
+   "fieldtype": "Datetime",
+   "label": "Classified On",
+   "read_only": 1
+  },
+  {
+   "description": "The real scraped contact-point email whose local part corroborated this name (Email Match pass) — safe to use as the outreach recipient, unlike the guessed addresses.",
+   "fieldname": "matched_contact_email",
+   "fieldtype": "Data",
+   "label": "Matched Contact Email",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "verification_section",
+   "fieldtype": "Section Break",
+   "label": "Email Verification"
+  },
+  {
+   "description": "Set by the deliverability check (services/email_verification.py) against guessed_email_1-6, in order, stopping at the first Verified result. Empty = never attempted; Error rows are retried on the next run.",
+   "fieldname": "verification_status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Verification Status",
+   "options": "\nVerified\nCatch-All\nNot Deliverable\nError",
+   "read_only": 1
+  },
+  {
+   "description": "The guessed address the verification run tested that produced this status. On Verified, this address is also pushed onto the linked Contact as its primary email (the outreach recipient) — the same promotion used by a Human confirm.",
+   "fieldname": "verified_email",
+   "fieldtype": "Data",
+   "label": "Verified Email",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "description": "Raw result string from the verification provider (ok / catch_all / invalid / disposable / unknown), kept for audit alongside the banded verification_status.",
+   "fieldname": "verification_result",
+   "fieldtype": "Data",
+   "label": "Verification Result",
+   "read_only": 1
+  },
+  {
+   "depends_on": "eval:doc.verification_status==\"Catch-All\"",
+   "description": "A Catch-All result means the domain accepts everything, so the automatic check can't trust it — click this to have a human promote verified_email to the outreach recipient anyway.",
+   "fieldname": "use_this_email",
+   "fieldtype": "Button",
+   "label": "Use This Email"
+  },
+  {
+   "fieldname": "verified_on",
+   "fieldtype": "Datetime",
+   "label": "Verified On",
+   "read_only": 1
+  }
+ ],
+ "istable": 1,
+ "modified": "2026-07-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "lead_outreach_manager",
+ "name": "Company Candidate Name",
+ "owner": "Administrator",
+ "permissions": [],
+ "quick_entry": 1,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

@@ -1,0 +1,329 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "field:uen",
+ "creation": "2026-07-13 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "uen",
+  "entity_name",
+  "country",
+  "entity_status_description",
+  "no_of_officers",
+  "classification_section",
+  "primary_ssic_code",
+  "primary_ssic_description",
+  "industry_tier",
+  "priority_tier",
+  "address_section",
+  "street_name",
+  "building_name",
+  "postal_code",
+  "postal_sector",
+  "geo_match_method",
+  "geo_match_zone",
+  "geo_confidence",
+  "pipeline_status_section",
+  "qualified",
+  "website",
+  "domain",
+  "domain_match_score",
+  "domain_status",
+  "crawl_status",
+  "contact_status",
+  "pipeline_stage",
+  "contact_section",
+  "has_email_contact",
+  "primary_contact_type",
+  "primary_email",
+  "primary_phone",
+  "do_not_contact",
+  "contact_points",
+  "candidate_names",
+  "source_section",
+  "source_company_id",
+  "source_inserted_at",
+  "source_updated_at",
+  "last_imported_on"
+ ],
+ "fields": [
+  {
+   "fieldname": "uen",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "UEN",
+   "reqd": 1,
+   "search_index": 1,
+   "set_only_once": 1,
+   "unique": 1
+  },
+  {
+   "fieldname": "entity_name",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Entity Name",
+   "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Singapore",
+   "description": "Which source pipeline/region this profile came from. Every field below entity_name (SSIC codes, postal sector, UEN format itself) is Singapore-specific; Vietnam imports (imports/vietnam_lead_imports.py) leave those blank.",
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Country",
+   "options": "Singapore\nVietnam",
+   "search_index": 1
+  },
+  {
+   "fieldname": "entity_status_description",
+   "fieldtype": "Data",
+   "label": "Entity Status"
+  },
+  {
+   "fieldname": "no_of_officers",
+   "fieldtype": "Int",
+   "label": "No. of Officers"
+  },
+  {
+   "fieldname": "classification_section",
+   "fieldtype": "Section Break",
+   "label": "Classification"
+  },
+  {
+   "fieldname": "primary_ssic_code",
+   "fieldtype": "Data",
+   "label": "Primary SSIC Code",
+   "search_index": 1
+  },
+  {
+   "fieldname": "primary_ssic_description",
+   "fieldtype": "Data",
+   "label": "Primary SSIC Description"
+  },
+  {
+   "fieldname": "industry_tier",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Industry Tier",
+   "search_index": 1
+  },
+  {
+   "fieldname": "priority_tier",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Priority Tier",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "address_section",
+   "fieldtype": "Section Break",
+   "label": "Address / Geo"
+  },
+  {
+   "fieldname": "street_name",
+   "fieldtype": "Data",
+   "label": "Street Name"
+  },
+  {
+   "fieldname": "building_name",
+   "fieldtype": "Data",
+   "label": "Building Name"
+  },
+  {
+   "fieldname": "postal_code",
+   "fieldtype": "Data",
+   "label": "Postal Code"
+  },
+  {
+   "fieldname": "postal_sector",
+   "fieldtype": "Data",
+   "label": "Postal Sector",
+   "search_index": 1
+  },
+  {
+   "fieldname": "geo_match_method",
+   "fieldtype": "Data",
+   "label": "Geo Match Method"
+  },
+  {
+   "fieldname": "geo_match_zone",
+   "fieldtype": "Data",
+   "label": "Geo Match Zone"
+  },
+  {
+   "fieldname": "geo_confidence",
+   "fieldtype": "Float",
+   "label": "Geo Confidence"
+  },
+  {
+   "fieldname": "pipeline_status_section",
+   "fieldtype": "Section Break",
+   "label": "Pipeline Status"
+  },
+  {
+   "fieldname": "qualified",
+   "fieldtype": "Check",
+   "label": "Qualified",
+   "read_only": 1
+  },
+  {
+   "fieldname": "website",
+   "fieldtype": "Data",
+   "label": "Website"
+  },
+  {
+   "fieldname": "domain",
+   "fieldtype": "Data",
+   "label": "Domain"
+  },
+  {
+   "fieldname": "domain_match_score",
+   "fieldtype": "Float",
+   "label": "Domain Match Score",
+   "read_only": 1
+  },
+  {
+   "description": "Vocabulary is owned by the external Python scraper pipeline (databases/singapore_industrial_leads.db) and may add values independently, so this is a plain read-only Data field rather than a Select.",
+   "fieldname": "domain_status",
+   "fieldtype": "Data",
+   "label": "Domain Status",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "crawl_status",
+   "fieldtype": "Data",
+   "label": "Crawl Status",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "contact_status",
+   "fieldtype": "Data",
+   "label": "Contact Status",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "pipeline_stage",
+   "fieldtype": "Data",
+   "label": "Pipeline Stage",
+   "read_only": 1
+  },
+  {
+   "fieldname": "contact_section",
+   "fieldtype": "Section Break",
+   "label": "Contact & Compliance"
+  },
+  {
+   "description": "Computed at import time from whether any contact_points row has contact_type='email'. Gates the Generate Outreach Email feature — about a third of usable leads only have a phone/contact-form, no email.",
+   "fieldname": "has_email_contact",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Has Email Contact",
+   "read_only": 1
+  },
+  {
+   "fieldname": "primary_contact_type",
+   "fieldtype": "Select",
+   "label": "Primary Contact Type",
+   "options": "Email\nPhone\nContact Form",
+   "read_only": 1
+  },
+  {
+   "fieldname": "primary_email",
+   "fieldtype": "Data",
+   "in_list_view": 1,
+   "label": "Primary Email",
+   "options": "Email",
+   "read_only": 1
+  },
+  {
+   "fieldname": "primary_phone",
+   "fieldtype": "Data",
+   "label": "Primary Phone",
+   "read_only": 1
+  },
+  {
+   "default": "0",
+   "description": "Company-level opt-out. When checked, outreach email generation and scheduling is blocked for every contact under this company.",
+   "fieldname": "do_not_contact",
+   "fieldtype": "Check",
+   "in_list_view": 1,
+   "label": "Do Not Contact"
+  },
+  {
+   "fieldname": "contact_points",
+   "fieldtype": "Table",
+   "label": "Contact Points",
+   "options": "Company Contact Point"
+  },
+  {
+   "fieldname": "candidate_names",
+   "fieldtype": "Table",
+   "label": "Candidate Names",
+   "options": "Company Candidate Name"
+  },
+  {
+   "fieldname": "source_section",
+   "fieldtype": "Section Break",
+   "label": "Source Tracking"
+  },
+  {
+   "fieldname": "source_company_id",
+   "fieldtype": "Int",
+   "label": "Source Company ID",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_inserted_at",
+   "fieldtype": "Datetime",
+   "label": "Source Inserted At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "source_updated_at",
+   "fieldtype": "Datetime",
+   "label": "Source Updated At",
+   "read_only": 1
+  },
+  {
+   "fieldname": "last_imported_on",
+   "fieldtype": "Datetime",
+   "label": "Last Imported On",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "lead_outreach_manager",
+ "name": "Company Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

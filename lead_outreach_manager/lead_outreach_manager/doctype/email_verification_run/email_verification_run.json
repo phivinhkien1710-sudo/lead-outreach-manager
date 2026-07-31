@@ -1,0 +1,169 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "EVR-.#####",
+ "creation": "2026-07-24 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "run_trigger",
+  "limit_rows",
+  "timeout_used",
+  "chunk_size_used",
+  "results_section",
+  "total_rows",
+  "verified_ok",
+  "catch_all",
+  "not_deliverable",
+  "error_rows",
+  "credits_used",
+  "chunks_total",
+  "chunks_failed",
+  "started_on",
+  "completed_on",
+  "error_summary"
+ ],
+ "fields": [
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nQueued\nRunning\nCompleted\nCompleted With Errors\nFailed",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "default": "Manual",
+   "fieldname": "run_trigger",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Trigger",
+   "options": "Manual\nBackfill\nPost Classification",
+   "read_only": 1
+  },
+  {
+   "description": "Optional cap on how many pending rows this run processes — useful for a small trial before a full backfill. Blank = all pending rows.",
+   "fieldname": "limit_rows",
+   "fieldtype": "Int",
+   "label": "Limit Rows"
+  },
+  {
+   "fieldname": "timeout_used",
+   "fieldtype": "Int",
+   "label": "Timeout Used (seconds)",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chunk_size_used",
+   "fieldtype": "Int",
+   "label": "Chunk Size Used",
+   "read_only": 1
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Results"
+  },
+  {
+   "fieldname": "total_rows",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Rows",
+   "read_only": 1
+  },
+  {
+   "fieldname": "verified_ok",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Verified",
+   "read_only": 1
+  },
+  {
+   "fieldname": "catch_all",
+   "fieldtype": "Int",
+   "label": "Catch-All",
+   "read_only": 1
+  },
+  {
+   "fieldname": "not_deliverable",
+   "fieldtype": "Int",
+   "label": "Not Deliverable",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_rows",
+   "fieldtype": "Int",
+   "label": "Error Rows",
+   "read_only": 1
+  },
+  {
+   "description": "Total verification API calls made by this run (each row may cost up to 6 — guessed_email_1-6, stopping at the first deliverable result).",
+   "fieldname": "credits_used",
+   "fieldtype": "Int",
+   "label": "Credits Used",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chunks_total",
+   "fieldtype": "Int",
+   "label": "Chunks Total",
+   "read_only": 1
+  },
+  {
+   "fieldname": "chunks_failed",
+   "fieldtype": "Int",
+   "label": "Chunks Failed",
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_summary",
+   "fieldtype": "Small Text",
+   "label": "Error Summary",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-24 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "lead_outreach_manager",
+ "name": "Email Verification Run",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

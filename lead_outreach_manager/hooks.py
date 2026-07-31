@@ -43,7 +43,7 @@ app_license = "mit"
 # page_js = {"page" : "public/js/file.js"}
 
 # include js in doctype views
-# doctype_js = {"doctype" : "public/js/doctype.js"}
+doctype_js = {"Contact": "public/js/contact.js"}
 # doctype_list_js = {"doctype" : "public/js/doctype_list.js"}
 # doctype_tree_js = {"doctype" : "public/js/doctype_tree.js"}
 # doctype_calendar_js = {"doctype" : "public/js/doctype_calendar.js"}
@@ -148,23 +148,11 @@ app_license = "mit"
 # Scheduled Tasks
 # ---------------
 
-# scheduler_events = {
-# 	"all": [
-# 		"lead_outreach_manager.tasks.all"
-# 	],
-# 	"daily": [
-# 		"lead_outreach_manager.tasks.daily"
-# 	],
-# 	"hourly": [
-# 		"lead_outreach_manager.tasks.hourly"
-# 	],
-# 	"weekly": [
-# 		"lead_outreach_manager.tasks.weekly"
-# 	],
-# 	"monthly": [
-# 		"lead_outreach_manager.tasks.monthly"
-# 	],
-# }
+scheduler_events = {
+	"hourly": [
+		"lead_outreach_manager.tasks.hourly_reconcile_outreach_email_status",
+	],
+}
 
 # Testing
 # -------

@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "OB-.#####",
+ "creation": "2026-07-13 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "filters_section",
+  "filter_company_industry_tier",
+  "filter_priority_tier",
+  "rate_limit_section",
+  "rate_limit_per_hour",
+  "business_hours_only",
+  "business_hours_start",
+  "business_hours_end",
+  "start_after",
+  "results_section",
+  "total_targets",
+  "scheduled_count",
+  "skipped_count",
+  "error_count",
+  "started_on",
+  "completed_on",
+  "error_summary"
+ ],
+ "fields": [
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nQueued\nScheduling\nCompleted\nCompleted With Errors\nFailed",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "filters_section",
+   "fieldtype": "Section Break",
+   "label": "Target Filters (optional — blank means all eligible)"
+  },
+  {
+   "fieldname": "filter_company_industry_tier",
+   "fieldtype": "Data",
+   "label": "Industry Tier"
+  },
+  {
+   "fieldname": "filter_priority_tier",
+   "fieldtype": "Data",
+   "label": "Priority Tier"
+  },
+  {
+   "fieldname": "rate_limit_section",
+   "fieldtype": "Section Break",
+   "label": "Rate Limiting & Schedule"
+  },
+  {
+   "default": "20",
+   "description": "Self-imposed cap since Email Queue itself has no per-hour limit — enforced by staggering each Outreach Email's own send_after this many minutes apart.",
+   "fieldname": "rate_limit_per_hour",
+   "fieldtype": "Int",
+   "label": "Rate Limit Per Hour",
+   "reqd": 1
+  },
+  {
+   "default": "1",
+   "fieldname": "business_hours_only",
+   "fieldtype": "Check",
+   "label": "Business Hours Only"
+  },
+  {
+   "default": "9",
+   "depends_on": "eval:doc.business_hours_only",
+   "fieldname": "business_hours_start",
+   "fieldtype": "Int",
+   "label": "Business Hours Start (SGT hour, 0-23)"
+  },
+  {
+   "default": "18",
+   "depends_on": "eval:doc.business_hours_only",
+   "fieldname": "business_hours_end",
+   "fieldtype": "Int",
+   "label": "Business Hours End (SGT hour, 0-23)"
+  },
+  {
+   "fieldname": "start_after",
+   "fieldtype": "Datetime",
+   "label": "Start After",
+   "reqd": 1
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Results"
+  },
+  {
+   "fieldname": "total_targets",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Total Targets",
+   "read_only": 1
+  },
+  {
+   "fieldname": "scheduled_count",
+   "fieldtype": "Int",
+   "in_list_view": 1,
+   "label": "Scheduled Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "skipped_count",
+   "fieldtype": "Int",
+   "label": "Skipped Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_count",
+   "fieldtype": "Int",
+   "label": "Error Count",
+   "read_only": 1
+  },
+  {
+   "fieldname": "started_on",
+   "fieldtype": "Datetime",
+   "label": "Started On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "completed_on",
+   "fieldtype": "Datetime",
+   "label": "Completed On",
+   "read_only": 1
+  },
+  {
+   "fieldname": "error_summary",
+   "fieldtype": "Small Text",
+   "label": "Error Summary",
+   "read_only": 1
+  }
+ ],
+ "grid_page_length": 50,
+ "index_web_pages_for_search": 1,
+ "links": [],
+ "modified": "2026-07-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "lead_outreach_manager",
+ "name": "Outreach Batch",
+ "naming_rule": "Expression",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "delete": 1,
+   "email": 1,
+   "export": 1,
+   "print": 1,
+   "read": 1,
+   "report": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "rows_threshold_for_grid_search": 20,
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

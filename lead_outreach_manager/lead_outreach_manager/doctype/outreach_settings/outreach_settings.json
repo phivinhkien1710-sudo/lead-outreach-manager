@@ -1,0 +1,207 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "creation": "2026-07-13 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "default_email_template",
+  "default_sender_email_account",
+  "default_rate_limit_per_hour",
+  "default_business_hours_only",
+  "default_business_hours_start",
+  "default_business_hours_end",
+  "classification_section",
+  "auto_classify_after_import",
+  "classification_model",
+  "classification_chunk_size",
+  "classification_cli_timeout",
+  "classification_cli_path",
+  "classification_fallback_cli_path",
+  "classification_fallback_model",
+  "classification_column_break",
+  "classification_min_confirm_confidence",
+  "classification_min_reject_confidence",
+  "recurrence_blacklist_threshold",
+  "verification_section",
+  "auto_verify_after_classification",
+  "email_verification_api_key",
+  "email_verification_column_break",
+  "email_verification_timeout",
+  "email_verification_chunk_size"
+ ],
+ "fields": [
+  {
+   "fieldname": "default_email_template",
+   "fieldtype": "Link",
+   "label": "Default Email Template",
+   "options": "Email Template"
+  },
+  {
+   "fieldname": "default_sender_email_account",
+   "fieldtype": "Link",
+   "label": "Default Sender Email Account",
+   "options": "Email Account"
+  },
+  {
+   "default": "20",
+   "fieldname": "default_rate_limit_per_hour",
+   "fieldtype": "Int",
+   "label": "Default Rate Limit Per Hour"
+  },
+  {
+   "default": "1",
+   "fieldname": "default_business_hours_only",
+   "fieldtype": "Check",
+   "label": "Default Business Hours Only"
+  },
+  {
+   "default": "9",
+   "fieldname": "default_business_hours_start",
+   "fieldtype": "Int",
+   "label": "Default Business Hours Start"
+  },
+  {
+   "default": "18",
+   "fieldname": "default_business_hours_end",
+   "fieldtype": "Int",
+   "label": "Default Business Hours End"
+  },
+  {
+   "fieldname": "classification_section",
+   "fieldtype": "Section Break",
+   "label": "Candidate Name Classification"
+  },
+  {
+   "default": "0",
+   "description": "When checked, each import run that adds new candidate names automatically enqueues a classification run. Explicit backfills (bench execute) always work regardless of this flag.",
+   "fieldname": "auto_classify_after_import",
+   "fieldtype": "Check",
+   "label": "Auto Classify After Import"
+  },
+  {
+   "default": "haiku",
+   "description": "Passed to the claude CLI as --model. Uses your Claude Code subscription; haiku conserves usage quota.",
+   "fieldname": "classification_model",
+   "fieldtype": "Data",
+   "label": "Classification Model"
+  },
+  {
+   "default": "50",
+   "description": "Candidate names per claude CLI call.",
+   "fieldname": "classification_chunk_size",
+   "fieldtype": "Int",
+   "label": "Classification Chunk Size"
+  },
+  {
+   "default": "120",
+   "fieldname": "classification_cli_timeout",
+   "fieldtype": "Int",
+   "label": "Classification CLI Timeout (seconds)"
+  },
+  {
+   "default": "claude",
+   "description": "Full path to the claude binary. If this isn't a real file (e.g. left as the bare default and claude isn't on the worker's PATH), the bundled Claude Code VS Code extension binary is auto-detected — no separate install needed.",
+   "fieldname": "classification_cli_path",
+   "fieldtype": "Data",
+   "label": "Claude CLI Path"
+  },
+  {
+   "description": "Full path to a second CLI (e.g. Codex) used automatically for a chunk when claude fails or hits its subscription session limit. Leave blank to auto-detect a local Codex install (checks PATH, then the Codex.app bundle on macOS); leave both blank and undetectable to disable the fallback.",
+   "fieldname": "classification_fallback_cli_path",
+   "fieldtype": "Data",
+   "label": "Fallback CLI Path"
+  },
+  {
+   "description": "Model passed to the fallback CLI. Leave blank to use that CLI's own configured default model.",
+   "fieldname": "classification_fallback_model",
+   "fieldtype": "Data",
+   "label": "Fallback Model"
+  },
+  {
+   "fieldname": "classification_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "0.85",
+   "description": "A 'person' verdict at or above this confidence auto-confirms the name (personalization only — the outreach recipient is never redirected to a guessed address automatically).",
+   "fieldname": "classification_min_confirm_confidence",
+   "fieldtype": "Float",
+   "label": "Min Auto-Confirm Confidence",
+   "precision": "2"
+  },
+  {
+   "default": "0.8",
+   "description": "A 'not_person' verdict at or above this confidence auto-rejects the row from review. Anything between the thresholds goes to Needs Review.",
+   "fieldname": "classification_min_reject_confidence",
+   "fieldtype": "Float",
+   "label": "Min Auto-Reject Confidence",
+   "precision": "2"
+  },
+  {
+   "default": "3",
+   "description": "A candidate name appearing on at least this many distinct Company Profiles is treated as boilerplate marketing copy and auto-rejected without an LLM call.",
+   "fieldname": "recurrence_blacklist_threshold",
+   "fieldtype": "Int",
+   "label": "Recurrence Blacklist Threshold"
+  },
+  {
+   "fieldname": "verification_section",
+   "fieldtype": "Section Break",
+   "label": "Email Verification"
+  },
+  {
+   "default": "0",
+   "description": "When checked, a classification run that produces new Auto Confirmed candidates automatically enqueues an email verification run. Explicit backfills (bench execute) always work regardless of this flag.",
+   "fieldname": "auto_verify_after_classification",
+   "fieldtype": "Check",
+   "label": "Auto Verify After Classification"
+  },
+  {
+   "description": "API key for the MillionVerifier real-time verification API (https://app.millionverifier.com/api). Pay-as-you-go, credits never expire.",
+   "fieldname": "email_verification_api_key",
+   "fieldtype": "Password",
+   "label": "Email Verification API Key"
+  },
+  {
+   "fieldname": "email_verification_column_break",
+   "fieldtype": "Column Break"
+  },
+  {
+   "default": "20",
+   "description": "Seconds MillionVerifier is given to resolve a single address (its documented max is 60).",
+   "fieldname": "email_verification_timeout",
+   "fieldtype": "Int",
+   "label": "Email Verification Timeout (seconds)"
+  },
+  {
+   "default": "50",
+   "description": "Candidate rows verified before each progress commit. Each row may cost up to 6 API calls (guessed_email_1-6, stopping at the first deliverable result).",
+   "fieldname": "email_verification_chunk_size",
+   "fieldtype": "Int",
+   "label": "Email Verification Chunk Size"
+  }
+ ],
+ "index_web_pages_for_search": 1,
+ "issingle": 1,
+ "links": [],
+ "modified": "2026-07-13 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "lead_outreach_manager",
+ "name": "Outreach Settings",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "create": 1,
+   "email": 1,
+   "print": 1,
+   "read": 1,
+   "role": "System Manager",
+   "share": 1,
+   "write": 1
+  }
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "states": []
+}
