@@ -3,8 +3,9 @@
 This guide is for reviewing companies, confirming contacts, and approving outreach emails day to day.
 No technical knowledge needed — everything here happens by clicking buttons and filling in forms.
 
-If you're setting this app up for the first time, that's a different job for whoever's handling the
-technical side — see `README.md` and `docs/DEPLOYMENT.md` instead.
+If nobody's set this up yet and you don't have a web address to log into, see `README.md`'s
+"Installing from scratch" section first — it's a step-by-step guide for getting the app running,
+written for the same non-technical audience as this page.
 
 ## Logging in
 

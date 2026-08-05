@@ -120,7 +120,84 @@ the pure, DB-independent logic (contact-point preference ordering, staggered-sch
 rendering) directly unit-testable without a Frappe site, and mirrors this bench's existing
 `receivable_risk_manager` app's own established convention.
 
+## Installing from scratch, if you don't already have a Frappe bench
+
+This is for someone starting with nothing but this GitHub repo — no server, no Frappe bench, not
+much technical background. It uses Frappe's own official one-command Docker installer, which builds
+and starts everything (database, background workers, the app itself) without you needing to install
+Python, Node, MariaDB, or Redis by hand. If you already have a Frappe bench running, skip to
+[Setup](#setup) below instead — this section is the "build the bench itself" step before that.
+
+**Honest expectations first:** this still means using a terminal and typing/copy-pasting commands —
+there's no click-to-install version. Budget 30–60 minutes (most of it waiting, not typing), a computer
+you're allowed to install software on (a locked-down work laptop often won't let you), and a few GB of
+free disk space.
+
+**1. Install Docker**, if you don't have it already.
+- **Mac**: install [Docker Desktop](https://www.docker.com/products/docker-desktop/), open it once so
+  it's running, then continue.
+- **Linux (Ubuntu/Debian)**: the installer script below can install Docker for you automatically — skip
+  this step.
+- **Windows**: install [WSL2](https://learn.microsoft.com/windows/wsl/install) first, then Docker
+  Desktop with WSL2 integration enabled. This path has more moving parts than Mac/Linux — if you get
+  stuck, that's the point to hand this off to someone technical rather than push through alone.
+
+**2. Open a terminal.** Mac: press `Cmd+Space`, type `Terminal`, hit Enter. Ubuntu: `Ctrl+Alt+T`.
+
+**3. Download Frappe's installer script:**
+```bash
+curl -O https://raw.githubusercontent.com/frappe/bench/develop/easy-install.py
+```
+
+**4. In the same folder, create a file named `apps.json`** (any plain text editor works) with exactly
+this content — it just tells the installer where to get this app's code:
+```json
+[
+  {
+    "url": "https://github.com/phivinhkien1710-sudo/lead-outreach-manager",
+    "branch": "develop"
+  }
+]
+```
+
+**5. Run the installer.** This one command downloads Frappe, builds this app into it, creates a site,
+and starts everything — it's the slow step (10–20 minutes):
+```bash
+python3 easy-install.py build \
+  --project lead-outreach \
+  --apps-json apps.json \
+  --app lead_outreach_manager \
+  --sitename lead-outreach.local \
+  --no-ssl \
+  --http-port 8080 \
+  --email you@example.com \
+  --deploy
+```
+What each part means: `--apps-json`/`--app` — this app's code, from step 4. `--sitename` — the site's
+internal name, can stay as-is or be anything you like. `--no-ssl --http-port 8080` — serves plain
+`http://` on port 8080 rather than needing a real domain and HTTPS certificate (fine for trying this
+out; a real deployment with a domain is a separate, more advanced step — see `docs/DEPLOYMENT.md`).
+`--email` — only used for HTTPS certificate renewal notices; put a real address you check, or leave
+the default if using `--no-ssl`. `--deploy` — start it up once the build finishes.
+
+**6. Find the generated password.** The script saves a random Administrator password to
+`~/passwords.txt` on your computer — open that file to find it.
+
+**7. Open your browser to `http://localhost:8080`** and log in as `Administrator` with that password.
+
+**If it fails partway through**: the script logs everything to `~/easy-install.log` — that file is
+what a technical person will want to see if you need to ask for help. This is a real installer doing
+real work, not a guaranteed-to-succeed wizard; failures are more likely on unusual machines (very low
+RAM/disk, restrictive corporate security software) than on a normal personal computer.
+
+Once it's running, continue with the configuration steps below (Email Account, Email Template,
+Outreach Settings) — then see `docs/USER_GUIDE.md` for how to actually use the app day to day.
+
 ## Setup
+
+*(If you just finished "Installing from scratch" above, the app is already installed — skip straight
+to the numbered configuration steps below. This section is for someone who already has a Frappe bench
+and just needs to add this app to it.)*
 
 ```bash
 cd /Users/phikien/erpnext/frappe-bench
