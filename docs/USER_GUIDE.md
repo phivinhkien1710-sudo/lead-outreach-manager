@@ -23,6 +23,49 @@ Each one is a company that's already been researched — website checked, a roug
 
 Click any row to open that company's full page.
 
+## Importing process-ready leads from CSV
+
+Search for **Lead CSV Import Run**, click **New**, choose the default country, and save. Use
+**Tools → Download CSV Template** for a ready-to-fill example, or attach an existing UTF-8 CSV.
+
+With **Run Discovery On Import** enabled (the default), the only required data is:
+
+- `company_name` (or `entity_name`)
+
+Header matching is case-insensitive and accepts spaces, so `Company name` and `Postal Code` can be
+uploaded directly; they are treated as `company_name` and `postal_code`.
+
+Optional columns are `domain`, `candidate_name`/`representative_name`/`name_text`, `country`,
+`uen`, `id`/`source_id`, `website`, `email`, `phone`,
+`position`/`title`, `industry_tier`, `priority_tier`, and `source_url`. Several emails can be placed
+in one `email` cell separated by semicolons or commas.
+
+After attaching the file, click **Validate CSV**. Review the valid/invalid counts and errors, then
+click **Start Import**. The import is safe to repeat: matching companies are updated, new candidate
+names are appended, and existing confirmation/review decisions are retained.
+
+During import, the app keeps supplied values and attempts to fill or verify discovery data itself:
+it generates likely domains from the company name, verifies a match from the public website, crawls
+a bounded set of contact/about/team pages, and extracts published contacts and title-adjacent
+candidate names. It uses no paid search API or LLM. Disable **Run Discovery On Import** only when the
+CSV is already process-ready; in that mode domain and candidate-name columns are required.
+
+### Keeping each daily import separate
+
+Every completed CSV import is an **Import Batch**. The app preserves batch membership even when the
+same company appears in a later CSV. Open the completed **Lead CSV Import Run** and use its
+**Batch Workflow** menu to continue with that batch:
+
+1. **Classify Candidates** — creates a classification run with this Import Batch filled in.
+2. **Review Candidates** — opens the review queue filtered to this batch.
+3. **Verify Emails** and **Review Verification** — process and review only this batch.
+4. **Generate Drafts** — generates eligible drafts and stamps them with this batch.
+5. **Schedule Approved Drafts** — schedules only approved drafts stamped with this batch.
+
+The same **Import Batch** selector is available directly on every run form and both review reports.
+Leave it blank only when you intentionally want to process all eligible records across all imports.
+Selecting a batch never starts a stage by itself; you still review the form and click its start button.
+
 ## Step 1 — Confirm a real contact person
 
 Scroll down to the **Candidate Names** section on a company's page. This is a list of names picked up

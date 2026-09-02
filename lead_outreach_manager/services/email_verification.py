@@ -202,7 +202,7 @@ def get_verification_settings() -> SimpleNamespace:
 	)
 
 
-def enqueue_backfill(limit_rows=None):
+def enqueue_backfill(limit_rows=None, import_run=None):
 	"""bench execute lead_outreach_manager.services.email_verification.enqueue_backfill
 	[--kwargs "{'limit_rows': 50}"] — always allowed regardless of the
 	auto_verify_after_classification setting (an explicit human action).
@@ -210,22 +210,23 @@ def enqueue_backfill(limit_rows=None):
 	whose verification_status is empty or Error."""
 	frappe = get_frappe()
 	limit_rows = frappe.utils.cint(limit_rows) or None
-	return create_and_queue_run("Backfill", limit_rows=limit_rows)
+	return create_and_queue_run("Backfill", limit_rows=limit_rows, import_run=import_run)
 
 
-def enqueue_post_classification_verification():
+def enqueue_post_classification_verification(import_run=None):
 	"""Called at the end of a classification run that produced new confirmed
 	candidates — no-op unless the operator opted in via Outreach Settings."""
 	if not get_verification_settings().auto_verify_after_classification:
 		return None
-	return create_and_queue_run("Post Classification")
+	return create_and_queue_run("Post Classification", import_run=import_run)
 
 
-def create_and_queue_run(trigger, limit_rows=None):
+def create_and_queue_run(trigger, limit_rows=None, import_run=None):
 	frappe = get_frappe()
 	run = frappe.new_doc("Email Verification Run")
 	run.run_trigger = trigger
 	run.limit_rows = limit_rows
+	run.import_run = import_run or None
 	run.insert(ignore_permissions=True)
 	queue_verification_run(run.name)
 	return run.name
@@ -270,7 +271,10 @@ def run_background_verification(verification_run_name):
 	errors = []
 
 	try:
-		targets = _get_unverified_rows(limit_rows=frappe.utils.cint(run.limit_rows) or None)
+		targets = _get_unverified_rows(
+			limit_rows=frappe.utils.cint(run.limit_rows) or None,
+			import_run=run.import_run,
+		)
 		counts["total_rows"] = len(targets)
 
 		_run_verification_pass(run.name, targets, settings, counts, errors)
@@ -288,9 +292,19 @@ def run_background_verification(verification_run_name):
 	return counts
 
 
-def _get_unverified_rows(limit_rows=None):
+def _get_unverified_rows(limit_rows=None, import_run=None):
 	frappe = get_frappe()
-	sql = """
+	batch_condition = ""
+	values = {}
+	if import_run:
+		batch_condition = """
+		  AND EXISTS (
+		      SELECT 1 FROM `tabLead Import Batch Member` lbm
+		      WHERE lbm.import_run = %(import_run)s AND lbm.company_profile = ccn.parent
+		  )
+		"""
+		values["import_run"] = import_run
+	sql = f"""
 		SELECT ccn.name AS row_name, ccn.parent, ccn.contact,
 		       ccn.guessed_email_1, ccn.guessed_email_2, ccn.guessed_email_3,
 		       ccn.guessed_email_4, ccn.guessed_email_5, ccn.guessed_email_6
@@ -299,11 +313,12 @@ def _get_unverified_rows(limit_rows=None):
 		  AND IFNULL(ccn.confirmed, 0) = 1
 		  AND IFNULL(ccn.guessed_email_1, '') != ''
 		  AND IFNULL(ccn.verification_status, '') IN ('', 'Error')
+		  {batch_condition}
 		ORDER BY ccn.parent, ccn.idx
 	"""
 	if limit_rows:
 		sql += f" LIMIT {int(limit_rows)}"
-	return frappe.db.sql(sql, as_dict=True)
+	return frappe.db.sql(sql, values, as_dict=True)
 
 
 def _run_verification_pass(run_name, targets, settings, counts, errors):

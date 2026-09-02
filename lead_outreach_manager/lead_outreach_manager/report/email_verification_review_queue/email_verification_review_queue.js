@@ -1,6 +1,13 @@
 frappe.query_reports["Email Verification Review Queue"] = {
 	filters: [
 		{
+			fieldname: "import_run",
+			label: __("Import Batch"),
+			fieldtype: "Link",
+			options: "Lead CSV Import Run",
+			description: __("Limit the queue to companies from one CSV import batch."),
+		},
+		{
 			fieldname: "verification_status",
 			label: __("Verification Status"),
 			fieldtype: "Select",

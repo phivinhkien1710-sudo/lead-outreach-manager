@@ -32,20 +32,22 @@ flowchart TD
 | `Company Profile` | One record per usable lead (tier A: verified domain + found generic contact). Mirrors the source pipeline's fields; `contact_points` rebuilt wholesale each import, `candidate_names` merge-appended so confirmations survive re-import. `country` (Singapore/Vietnam) records which importer/pipeline a profile came from — see Importing leads below. |
 | `Company Contact Point` | Child table — read-only mirror of the source `contact_points` rows. |
 | `Company Candidate Name` | Child table — mirrors the source `candidate_names` rows plus the human confirmation gate (`confirmed`, `confirmed_by/_on`, linked `contact`), and the classification/verification results described below. |
-| `Candidate Classification Run` | Tracks one batch pass of `services/candidate_classification.py` — the LLM-based person/not-person classification over unconfirmed candidate names. Status-tracked job doc, chunked, resumable. |
-| `Email Verification Run` | Tracks one batch pass of `services/email_verification.py` — MillionVerifier-backed deliverability checks over a confirmed candidate's guessed emails. Same status-tracked/chunked/resumable pattern. |
-| `Outreach Email` | One record per generate→verify→schedule cycle for a single contact. |
-| `Outreach Batch` | Self-imposed rate-limited/staggered scheduling across many `Outreach Email` records at once. |
-| `Outreach Generation Run` | Tracks one bulk pass of `services/outreach_generation.py` — generates an `Outreach Email` draft for every auto-confirmed candidate that doesn't have one yet. |
+| `Candidate Classification Run` | Tracks one classification pass over unconfirmed candidate names, optionally scoped to one `Lead CSV Import Run`. Status-tracked, chunked, resumable. |
+| `Email Verification Run` | Tracks one MillionVerifier-backed deliverability pass, optionally scoped to one import batch. |
+| `Outreach Email` | One record per generate→verify→schedule cycle for a single contact, with the originating import batch snapshotted for review and scheduling. |
+| `Outreach Batch` | Self-imposed rate-limited/staggered scheduling across approved `Outreach Email` records, optionally restricted to one import batch. |
+| `Outreach Generation Run` | Generates drafts for eligible auto-confirmed candidates, optionally restricted to one import batch. |
 | `Outreach Settings` | Singleton — defaults (email template, sender account, rate limit, business hours) plus classification and verification configuration — see Outreach Settings below. |
+| `Lead CSV Import Run` | Desk-native validation, safe public-web domain/contact/candidate discovery, and idempotent import of Singapore/Vietnam CSV exports. |
+| `Lead Import Batch Member` | Immutable many-to-many membership between a CSV import and its Company Profiles, preserving historical batch scope across re-imports. |
 
 Contact attachment uses core Frappe's own `Contact.links` (`Dynamic Link`) mechanism — the same one
 Lead/Prospect/Customer already use — rather than a custom join doctype.
 
 ## Dependencies
 
-`pyproject.toml` declares no third-party Python packages — the app runs on whatever's already in a
-standard Frappe/ERPNext bench (Frappe itself only, via `bench`).
+`pyproject.toml` declares `requests` and `beautifulsoup4` for import-time public-website discovery;
+both are also normally present in a standard Frappe/ERPNext bench.
 
 Two things are runtime dependencies but **not pip-installable**, since they're invoked as CLI
 subprocesses rather than imported: the `claude` CLI (required for candidate-name classification,

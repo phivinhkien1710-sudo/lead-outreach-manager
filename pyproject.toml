@@ -8,6 +8,8 @@ requires-python = ">=3.10"
 readme = "README.md"
 dynamic = ["version"]
 dependencies = [
+    "beautifulsoup4>=4.12",
+    "requests>=2.31",
     # "frappe~=15.0.0" # Installed and managed by bench.
 ]
 

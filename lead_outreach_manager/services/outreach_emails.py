@@ -27,7 +27,7 @@ GUESSED_EMAIL_FIELDS = [
 ]
 
 
-def create_outreach_email(company_profile, contact, email_template=None):
+def create_outreach_email(company_profile, contact, email_template=None, import_run=None):
 	profile = frappe.get_doc("Company Profile", company_profile)
 	contact_doc = frappe.get_doc("Contact", contact)
 
@@ -63,6 +63,7 @@ def create_outreach_email(company_profile, contact, email_template=None):
 	outreach = frappe.new_doc("Outreach Email")
 	outreach.status = "Draft"
 	outreach.company_profile = profile.name
+	outreach.import_run = import_run or None
 	outreach.contact = contact_doc.name
 	outreach.email_template = template.name
 	outreach.communication = communication_name
@@ -223,7 +224,8 @@ def backfill_guessed_emails():
 	bench execute lead_outreach_manager.services.outreach_emails.backfill_guessed_emails
 	"""
 	rows = frappe.db.sql(
-		"SELECT name, contact FROM `tabOutreach Email` WHERE IFNULL(guessed_email_1, '') = ''",
+		"""SELECT name, contact FROM `tabOutreach Email`
+		WHERE IFNULL(guessed_email_1, '') = '' OR IFNULL(guessed_email_4, '') = ''""",
 		as_dict=True,
 	)
 	fixed = 0

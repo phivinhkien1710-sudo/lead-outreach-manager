@@ -1,0 +1,141 @@
+{
+ "actions": [],
+ "allow_rename": 0,
+ "autoname": "LCI-.#####",
+ "creation": "2026-09-01 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "status",
+  "country",
+  "csv_file",
+  "limit_rows",
+  "input_help",
+  "discovery_section",
+  "run_discovery_on_import",
+  "discovery_workers",
+  "discovery_timeout",
+  "discovery_max_pages",
+  "results_section",
+  "total_rows",
+  "valid_rows",
+  "invalid_rows",
+  "profiles_created",
+  "profiles_updated",
+  "contacts_created",
+  "contacts_updated",
+  "candidate_names_added",
+  "batch_companies",
+  "domains_discovered",
+  "profiles_crawled",
+  "contacts_discovered",
+  "candidates_discovered",
+  "discovery_failed",
+  "started_on",
+  "completed_on",
+  "error_summary"
+ ],
+ "fields": [
+  {
+   "default": "Draft",
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Status",
+   "options": "Draft\nValidated\nValidation Failed\nQueued\nImporting\nCompleted\nCompleted With Errors\nFailed",
+   "read_only": 1,
+   "search_index": 1
+  },
+  {
+   "description": "Used when the CSV has no country column. A row-level country value takes precedence.",
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "in_list_view": 1,
+   "label": "Default Country",
+   "options": "Singapore\nVietnam",
+   "reqd": 1
+  },
+  {
+   "description": "Attach a UTF-8 CSV. Company name is required. Domain and candidate are optional when discovery is enabled.",
+   "fieldname": "csv_file",
+   "fieldtype": "Attach",
+   "label": "CSV File"
+  },
+  {
+   "description": "Optional trial cap. Blank imports every valid row.",
+   "fieldname": "limit_rows",
+   "fieldtype": "Int",
+   "label": "Limit Rows"
+  },
+  {
+   "description": "Required: company_name or entity_name. Optional: domain, candidate_name/representative_name/name_text, country, uen, id/source_id, postal_code, website, email, phone, position/title, industry_tier, priority_tier, source_url. Friendly headers with spaces/capitalization are accepted.",
+   "fieldname": "input_help",
+   "fieldtype": "Small Text",
+   "label": "Accepted CSV Columns",
+   "read_only": 1
+  },
+  {
+   "fieldname": "discovery_section",
+   "fieldtype": "Section Break",
+   "label": "Import-time Discovery"
+  },
+  {
+   "default": "1",
+   "description": "For missing or supplied domains, verify the company website and crawl it for contacts and candidate names before import.",
+   "fieldname": "run_discovery_on_import",
+   "fieldtype": "Check",
+   "label": "Run Discovery On Import"
+  },
+  {
+   "default": "4",
+   "fieldname": "discovery_workers",
+   "fieldtype": "Int",
+   "label": "Discovery Workers"
+  },
+  {
+   "default": "12",
+   "fieldname": "discovery_timeout",
+   "fieldtype": "Int",
+   "label": "Request Timeout (seconds)"
+  },
+  {
+   "default": "6",
+   "fieldname": "discovery_max_pages",
+   "fieldtype": "Int",
+   "label": "Maximum Pages Per Company"
+  },
+  {
+   "fieldname": "results_section",
+   "fieldtype": "Section Break",
+   "label": "Validation & Import Results"
+  },
+  {"fieldname":"total_rows","fieldtype":"Int","label":"Total Rows","read_only":1},
+  {"fieldname":"valid_rows","fieldtype":"Int","label":"Valid Rows","read_only":1},
+  {"fieldname":"invalid_rows","fieldtype":"Int","label":"Invalid Rows","read_only":1},
+  {"fieldname":"profiles_created","fieldtype":"Int","label":"Profiles Created","read_only":1},
+  {"fieldname":"profiles_updated","fieldtype":"Int","label":"Profiles Updated","read_only":1},
+  {"fieldname":"contacts_created","fieldtype":"Int","label":"Contacts Created","read_only":1},
+  {"fieldname":"contacts_updated","fieldtype":"Int","label":"Contacts Updated","read_only":1},
+  {"fieldname":"candidate_names_added","fieldtype":"Int","label":"Candidate Names Added","read_only":1},
+  {"fieldname":"batch_companies","fieldtype":"Int","in_list_view":1,"label":"Companies In Batch","read_only":1},
+  {"fieldname":"domains_discovered","fieldtype":"Int","label":"Domains Discovered","read_only":1},
+  {"fieldname":"profiles_crawled","fieldtype":"Int","label":"Profiles Crawled","read_only":1},
+  {"fieldname":"contacts_discovered","fieldtype":"Int","label":"Contacts Discovered","read_only":1},
+  {"fieldname":"candidates_discovered","fieldtype":"Int","label":"Candidates Discovered","read_only":1},
+  {"fieldname":"discovery_failed","fieldtype":"Int","label":"Discovery Failed","read_only":1},
+  {"fieldname":"started_on","fieldtype":"Datetime","label":"Started On","read_only":1},
+  {"fieldname":"completed_on","fieldtype":"Datetime","label":"Completed On","read_only":1},
+  {"fieldname":"error_summary","fieldtype":"Small Text","label":"Errors","read_only":1}
+ ],
+ "modified": "2026-09-01 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "lead_outreach_manager",
+ "name": "Lead CSV Import Run",
+ "naming_rule": "Expression",
+ "permissions": [
+  {"create":1,"delete":1,"email":1,"export":1,"print":1,"read":1,"report":1,"role":"System Manager","share":1,"write":1}
+ ],
+ "sort_field": "modified",
+ "sort_order": "DESC",
+ "track_changes": 1
+}

@@ -11,6 +11,7 @@ from lead_outreach_manager.services.email_verification import (
 	run_background_verification,
 )
 from lead_outreach_manager.services import email_verification as verification_module
+from lead_outreach_manager.services.csv_imports import ensure_batch_membership
 
 TEST_PREFIX = "TEST-LOM-VERIFY"
 
@@ -37,11 +38,16 @@ class TestEmailVerificationFlow(FrappeTestCase):
 	def setUp(self):
 		self.profiles = []
 		self.runs = []
+		self.import_runs = []
 		self._cleanup_stale()  # defensive: survive a prior run's incomplete tearDown
 
 	def tearDown(self):
 		for run in self.runs:
 			frappe.delete_doc("Email Verification Run", run, force=True, ignore_permissions=True)
+		for run in self.import_runs:
+			for member in frappe.get_all("Lead Import Batch Member", filters={"import_run": run}, pluck="name"):
+				frappe.delete_doc("Lead Import Batch Member", member, force=True, ignore_permissions=True)
+			frappe.delete_doc("Lead CSV Import Run", run, force=True, ignore_permissions=True)
 		for profile in self.profiles:
 			contact_name = find_linked_contact(profile.name)
 			if contact_name:
@@ -54,6 +60,18 @@ class TestEmailVerificationFlow(FrappeTestCase):
 	# ------------------------------------------------------------------
 	# Scenarios
 	# ------------------------------------------------------------------
+
+	def test_import_batch_limits_verification_selection(self):
+		included = self._create_confirmed_candidate(0, "Jane Tan")
+		self._create_confirmed_candidate(1, "Alice Wong")
+		import_run = frappe.get_doc({
+			"doctype": "Lead CSV Import Run", "country": "Singapore"
+		}).insert(ignore_permissions=True)
+		self.import_runs.append(import_run.name)
+		ensure_batch_membership(import_run.name, included.name, 2)
+
+		targets = verification_module._get_unverified_rows(import_run=import_run.name)
+		self.assertEqual({row.parent for row in targets}, {included.name})
 
 	def test_ok_on_first_guess_promotes_contact_and_marks_verified(self):
 		profile = self._create_confirmed_candidate(0, "Jane Tan")
@@ -212,8 +230,12 @@ class TestEmailVerificationFlow(FrappeTestCase):
 		own_profile_names = {p.name for p in self.profiles}
 		real_get_unverified_rows = verification_module._get_unverified_rows
 
-		def scoped_get_unverified_rows(limit_rows=None):
-			rows = [row for row in real_get_unverified_rows(limit_rows=None) if row["parent"] in own_profile_names]
+		def scoped_get_unverified_rows(limit_rows=None, **target_filters):
+			rows = [
+				row
+				for row in real_get_unverified_rows(limit_rows=None, **target_filters)
+				if row["parent"] in own_profile_names
+			]
 			return rows[:limit_rows] if limit_rows else rows
 
 		run = frappe.new_doc("Email Verification Run")

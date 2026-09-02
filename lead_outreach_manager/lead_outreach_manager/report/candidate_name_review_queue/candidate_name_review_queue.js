@@ -1,6 +1,13 @@
 frappe.query_reports["Candidate Name Review Queue"] = {
 	filters: [
 		{
+			fieldname: "import_run",
+			label: __("Import Batch"),
+			fieldtype: "Link",
+			options: "Lead CSV Import Run",
+			description: __("Limit the queue to companies from one CSV import batch."),
+		},
+		{
 			fieldname: "classification_status",
 			label: __("Classification Status"),
 			fieldtype: "Select",
@@ -37,6 +44,18 @@ frappe.query_reports["Candidate Name Review Queue"] = {
 			fieldname: "industry_tier",
 			label: __("Industry Tier"),
 			fieldtype: "Data",
+		},
+		{
+			fieldname: "company_name",
+			label: __("Company Name"),
+			fieldtype: "Data",
+			description: __("Contains search; partial company names are accepted."),
+		},
+		{
+			fieldname: "country",
+			label: __("Country"),
+			fieldtype: "Select",
+			options: "\nSingapore\nVietnam",
 		},
 	],
 };

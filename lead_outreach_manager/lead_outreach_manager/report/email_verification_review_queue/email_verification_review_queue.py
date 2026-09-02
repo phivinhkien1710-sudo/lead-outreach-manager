@@ -64,6 +64,14 @@ def get_data(filters):
 	status = clean_text(filters.get("verification_status")) or "Catch-All"
 	conditions = ["ccn.parenttype = 'Company Profile'", "ccn.verification_status = %(verification_status)s"]
 	values = {"verification_status": status}
+	if clean_text(filters.get("import_run")):
+		conditions.append("""
+			EXISTS (
+				SELECT 1 FROM `tabLead Import Batch Member` lbm
+				WHERE lbm.import_run = %(import_run)s AND lbm.company_profile = ccn.parent
+			)
+		""")
+		values["import_run"] = clean_text(filters.get("import_run"))
 
 	if clean_text(filters.get("industry_tier")):
 		conditions.append("cp.industry_tier = %(industry_tier)s")

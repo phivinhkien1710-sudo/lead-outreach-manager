@@ -502,29 +502,30 @@ def get_classification_settings() -> SimpleNamespace:
 	)
 
 
-def enqueue_backfill(limit_rows=None):
+def enqueue_backfill(limit_rows=None, import_run=None):
 	"""bench execute lead_outreach_manager.services.candidate_classification.enqueue_backfill
 	[--kwargs "{'limit_rows': 200}"] — always allowed regardless of the
 	auto_classify_after_import setting (an explicit human action). Re-runnable
 	at will; each run only picks up unconfirmed, unclassified/Error rows."""
 	frappe = get_frappe()
 	limit_rows = frappe.utils.cint(limit_rows) or None
-	return create_and_queue_run("Backfill", limit_rows=limit_rows)
+	return create_and_queue_run("Backfill", limit_rows=limit_rows, import_run=import_run)
 
 
-def enqueue_post_import_classification():
+def enqueue_post_import_classification(import_run=None):
 	"""Called at the end of import_usable_leads — no-op unless the operator
 	opted in via Outreach Settings."""
 	if not get_classification_settings().auto_classify_after_import:
 		return None
-	return create_and_queue_run("Post Import")
+	return create_and_queue_run("Post Import", import_run=import_run)
 
 
-def create_and_queue_run(trigger, limit_rows=None):
+def create_and_queue_run(trigger, limit_rows=None, import_run=None):
 	frappe = get_frappe()
 	run = frappe.new_doc("Candidate Classification Run")
 	run.run_trigger = trigger
 	run.limit_rows = limit_rows
+	run.import_run = import_run or None
 	run.insert(ignore_permissions=True)
 	queue_classification_run(run.name)
 	return run.name
@@ -571,7 +572,10 @@ def run_background_classification(classification_run_name):
 	errors = []
 
 	try:
-		targets = _get_unclassified_rows(limit_rows=frappe.utils.cint(run.limit_rows) or None)
+		targets = _get_unclassified_rows(
+			limit_rows=frappe.utils.cint(run.limit_rows) or None,
+			import_run=run.import_run,
+		)
 		counts["total_rows"] = len(targets)
 
 		# Profiles where auto-confirmation is off the table: any profile that
@@ -595,7 +599,7 @@ def run_background_classification(classification_run_name):
 					enqueue_post_classification_verification,
 				)
 
-				enqueue_post_classification_verification()
+				enqueue_post_classification_verification(import_run=run.import_run)
 			except Exception:
 				frappe.log_error(
 					title=f"Post-classification verification enqueue failed: {run.name}",
@@ -614,20 +618,31 @@ def run_background_classification(classification_run_name):
 	return counts
 
 
-def _get_unclassified_rows(limit_rows=None):
+def _get_unclassified_rows(limit_rows=None, import_run=None):
 	frappe = get_frappe()
-	sql = """
+	batch_condition = ""
+	values = {}
+	if import_run:
+		batch_condition = """
+		  AND EXISTS (
+		      SELECT 1 FROM `tabLead Import Batch Member` lbm
+		      WHERE lbm.import_run = %(import_run)s AND lbm.company_profile = ccn.parent
+		  )
+		"""
+		values["import_run"] = import_run
+	sql = f"""
 		SELECT ccn.name AS row_name, ccn.parent, ccn.name_text, ccn.title_text, cp.entity_name
 		FROM `tabCompany Candidate Name` ccn
 		JOIN `tabCompany Profile` cp ON cp.name = ccn.parent
 		WHERE ccn.parenttype = 'Company Profile'
 		  AND IFNULL(ccn.confirmed, 0) = 0
 		  AND IFNULL(ccn.classification_status, '') IN ('', 'Error')
+		  {batch_condition}
 		ORDER BY ccn.parent, ccn.idx
 	"""
 	if limit_rows:
 		sql += f" LIMIT {int(limit_rows)}"
-	return frappe.db.sql(sql, as_dict=True)
+	return frappe.db.sql(sql, values, as_dict=True)
 
 
 def _profiles_with_confirmed_rows(parents) -> set:

@@ -8,6 +8,7 @@
  "field_order": [
   "status",
   "run_trigger",
+  "import_run",
   "limit_rows",
   "model_used",
   "chunk_size_used",
@@ -45,6 +46,15 @@
    "label": "Trigger",
    "options": "Manual\nBackfill\nPost Import",
    "read_only": 1
+  },
+  {
+   "description": "Optional. When selected, classify only candidates belonging to companies in this CSV import batch.",
+   "fieldname": "import_run",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Import Batch",
+   "options": "Lead CSV Import Run",
+   "search_index": 1
   },
   {
    "description": "Optional cap on how many pending rows this run processes — useful for a small trial before a full backfill. Blank = all pending rows.",

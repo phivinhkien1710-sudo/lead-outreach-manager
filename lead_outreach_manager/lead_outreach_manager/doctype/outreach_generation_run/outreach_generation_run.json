@@ -8,6 +8,11 @@
  "field_order": [
   "status",
   "email_template",
+  "filters_section",
+  "import_run",
+  "country",
+  "industry_tier",
+  "company_name",
   "limit_rows",
   "results_section",
   "total_targets",
@@ -35,6 +40,38 @@
    "fieldtype": "Link",
    "label": "Email Template",
    "options": "Email Template"
+  },
+  {
+   "fieldname": "filters_section",
+   "fieldtype": "Section Break",
+   "label": "Target Filters"
+  },
+  {
+   "description": "Optional. Generate drafts only for eligible companies in this CSV import batch.",
+   "fieldname": "import_run",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Import Batch",
+   "options": "Lead CSV Import Run",
+   "search_index": 1
+  },
+  {
+   "fieldname": "country",
+   "fieldtype": "Select",
+   "label": "Country",
+   "options": "\nSingapore\nVietnam"
+  },
+  {
+   "description": "Exact industry-tier match. Blank includes every industry.",
+   "fieldname": "industry_tier",
+   "fieldtype": "Data",
+   "label": "Industry Tier"
+  },
+  {
+   "description": "Contains search; partial company names are accepted.",
+   "fieldname": "company_name",
+   "fieldtype": "Data",
+   "label": "Company Name"
   },
   {
    "description": "Optional cap on how many contacts this run generates for — useful for a small trial before a full run. Blank = every eligible auto-confirmed contact.",

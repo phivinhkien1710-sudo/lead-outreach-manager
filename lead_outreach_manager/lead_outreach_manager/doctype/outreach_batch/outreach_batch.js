@@ -4,6 +4,9 @@
 const OUTREACH_BATCH_UPDATE_EVENT = "outreach_batch_update";
 
 frappe.ui.form.on("Outreach Batch", {
+	setup(frm) {
+		set_completed_import_query(frm);
+	},
 	refresh(frm) {
 		if (frm.is_new()) {
 			return;
@@ -47,6 +50,12 @@ frappe.ui.form.on("Outreach Batch", {
 		}
 	},
 });
+
+function set_completed_import_query(frm) {
+	frm.set_query("import_run", () => ({
+		filters: { status: ["in", ["Completed", "Completed With Errors"]] },
+	}));
+}
 
 function register_outreach_batch_listener(frm) {
 	if (frm.__outreach_batch_listener_registered) {

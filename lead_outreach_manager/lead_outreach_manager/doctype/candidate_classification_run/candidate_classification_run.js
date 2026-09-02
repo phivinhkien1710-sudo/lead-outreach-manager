@@ -4,6 +4,9 @@
 const CLASSIFICATION_RUN_UPDATE_EVENT = "candidate_classification_update";
 
 frappe.ui.form.on("Candidate Classification Run", {
+	setup(frm) {
+		set_completed_import_query(frm);
+	},
 	refresh(frm) {
 		if (frm.is_new()) {
 			return;
@@ -13,7 +16,7 @@ frappe.ui.form.on("Candidate Classification Run", {
 			frm.add_custom_button(__("Start Classification"), () => {
 				frappe.confirm(
 					__(
-						"This will classify every pending candidate name in the background — deterministic passes first, then the claude CLI (your Claude subscription) for the rest. Continue?"
+						"This will classify pending candidate names in the selected import batch (or all pending candidates when blank) — deterministic passes first, then the configured CLI for the rest. Continue?"
 					),
 					() => {
 						frappe.call({
@@ -47,6 +50,12 @@ frappe.ui.form.on("Candidate Classification Run", {
 		}
 	},
 });
+
+function set_completed_import_query(frm) {
+	frm.set_query("import_run", () => ({
+		filters: { status: ["in", ["Completed", "Completed With Errors"]] },
+	}));
+}
 
 function register_classification_run_listener(frm) {
 	if (frm.__classification_run_listener_registered) {

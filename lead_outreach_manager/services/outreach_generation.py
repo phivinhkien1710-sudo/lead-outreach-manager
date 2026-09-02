@@ -19,7 +19,9 @@ COMMIT_EVERY = 100
 ERROR_SUMMARY_MAX_ENTRIES = 20
 
 
-def enqueue_for_auto_confirmed(limit_rows=None, email_template=None):
+def enqueue_for_auto_confirmed(
+	limit_rows=None, email_template=None, country=None, industry_tier=None, company_name=None, import_run=None,
+):
 	"""bench execute lead_outreach_manager.services.outreach_generation.enqueue_for_auto_confirmed
 	[--kwargs "{'limit_rows': 20}"] — creates and queues a run. `email_template`
 	overrides Outreach Settings' default for this run only."""
@@ -27,6 +29,10 @@ def enqueue_for_auto_confirmed(limit_rows=None, email_template=None):
 	run = frappe.new_doc("Outreach Generation Run")
 	run.limit_rows = frappe.utils.cint(limit_rows) or None
 	run.email_template = email_template or None
+	run.country = country or None
+	run.industry_tier = industry_tier or None
+	run.company_name = company_name or None
+	run.import_run = import_run or None
 	run.insert(ignore_permissions=True)
 	queue_generation_run(run.name)
 	return run.name
@@ -66,7 +72,13 @@ def run_background_generation(outreach_generation_run_name):
 	frappe.db.commit()
 
 	try:
-		targets = _get_auto_confirmed_targets(limit_rows=frappe.utils.cint(run.limit_rows) or None)
+		targets = _get_auto_confirmed_targets(
+			limit_rows=frappe.utils.cint(run.limit_rows) or None,
+			country=run.country,
+			industry_tier=run.industry_tier,
+			company_name=run.company_name,
+			import_run=run.import_run,
+		)
 		run.total_targets = len(targets)
 
 		generated_count = 0
@@ -76,7 +88,12 @@ def run_background_generation(outreach_generation_run_name):
 
 		for index, target in enumerate(targets):
 			try:
-				create_outreach_email(target["company_profile"], target["contact"], email_template=run.email_template)
+				create_outreach_email(
+					target["company_profile"],
+					target["contact"],
+					email_template=run.email_template,
+					import_run=run.import_run,
+				)
 				generated_count += 1
 			except frappe.ValidationError as exc:
 				# do-not-contact / unsubscribed / no-email / no-template gate
@@ -113,20 +130,47 @@ def run_background_generation(outreach_generation_run_name):
 	return {"generated": generated_count, "skipped": skipped_count, "errors": error_count}
 
 
-def _get_auto_confirmed_targets(limit_rows=None):
+def _get_auto_confirmed_targets(
+	limit_rows=None, country=None, industry_tier=None, company_name=None, import_run=None,
+):
 	"""Every confirmed row from the auto passes (LLM or Email Match — either
 	way classification_status ends up Auto Confirmed) that doesn't already
 	have an Outreach Email for that (company_profile, contact) pair. Human
 	confirms are intentionally excluded — the human already reviewed that
 	one individually and can generate for it the same way."""
 	frappe = get_frappe()
-	sql = """
+	conditions = [
+		"ccn.parenttype = 'Company Profile'",
+		"ccn.confirmed = 1",
+		"ccn.classification_status = 'Auto Confirmed'",
+		"ccn.contact IS NOT NULL AND ccn.contact != ''",
+		"IFNULL(cp.has_email_contact, 0) = 1",
+		"IFNULL(cp.do_not_contact, 0) = 0",
+	]
+	values = {}
+	if import_run:
+		conditions.append("""
+			EXISTS (
+				SELECT 1 FROM `tabLead Import Batch Member` lbm
+				WHERE lbm.import_run = %(import_run)s AND lbm.company_profile = ccn.parent
+			)
+		""")
+		values["import_run"] = import_run
+	if country:
+		conditions.append("cp.country = %(country)s")
+		values["country"] = country
+	if industry_tier:
+		conditions.append("cp.industry_tier = %(industry_tier)s")
+		values["industry_tier"] = industry_tier
+	if company_name:
+		conditions.append("cp.entity_name LIKE %(company_name)s")
+		values["company_name"] = f"%{company_name.strip()}%"
+
+	sql = f"""
 		SELECT DISTINCT ccn.parent AS company_profile, ccn.contact
 		FROM `tabCompany Candidate Name` ccn
-		WHERE ccn.parenttype = 'Company Profile'
-		  AND ccn.confirmed = 1
-		  AND ccn.classification_status = 'Auto Confirmed'
-		  AND ccn.contact IS NOT NULL AND ccn.contact != ''
+		JOIN `tabCompany Profile` cp ON cp.name = ccn.parent
+		WHERE {" AND ".join(conditions)}
 		  AND NOT EXISTS (
 		      SELECT 1 FROM `tabOutreach Email` oe
 		      WHERE oe.company_profile = ccn.parent AND oe.contact = ccn.contact
@@ -135,7 +179,7 @@ def _get_auto_confirmed_targets(limit_rows=None):
 	"""
 	if limit_rows:
 		sql += f" LIMIT {int(limit_rows)}"
-	return frappe.db.sql(sql, as_dict=True)
+	return frappe.db.sql(sql, values, as_dict=True)
 
 
 def notify_generation_run_update(run):

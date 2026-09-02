@@ -130,6 +130,9 @@ def _get_eligible_targets(batch):
 
 	conditions = ["oe.status = 'Ready to Send'"]
 	values = {}
+	if batch.import_run:
+		conditions.append("oe.import_run = %(import_run)s")
+		values["import_run"] = batch.import_run
 	if batch.filter_company_industry_tier:
 		conditions.append("cp.industry_tier = %(industry_tier)s")
 		values["industry_tier"] = batch.filter_company_industry_tier

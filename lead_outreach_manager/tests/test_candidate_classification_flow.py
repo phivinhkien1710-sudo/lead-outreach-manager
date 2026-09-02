@@ -13,6 +13,7 @@ from lead_outreach_manager.services.candidate_classification import (
 from lead_outreach_manager.services import candidate_classification as classification_module
 from lead_outreach_manager.services.candidate_names import confirm_candidate_name
 from lead_outreach_manager.services.contacts import find_linked_contact, get_or_create_generic_contact
+from lead_outreach_manager.services.csv_imports import ensure_batch_membership
 
 TEST_PREFIX = "000-TEST-LOM-CLASSIFY"
 LEGACY_TEST_PREFIX = "TEST-LOM-CLASSIFY"
@@ -63,11 +64,16 @@ class TestCandidateClassificationFlow(FrappeTestCase):
 	def setUp(self):
 		self.profiles = []
 		self.runs = []
+		self.import_runs = []
 		self._cleanup_stale()  # defensive: survive a prior run's incomplete tearDown
 
 	def tearDown(self):
 		for run in self.runs:
 			frappe.delete_doc("Candidate Classification Run", run, force=True, ignore_permissions=True)
+		for run in self.import_runs:
+			for member in frappe.get_all("Lead Import Batch Member", filters={"import_run": run}, pluck="name"):
+				frappe.delete_doc("Lead Import Batch Member", member, force=True, ignore_permissions=True)
+			frappe.delete_doc("Lead CSV Import Run", run, force=True, ignore_permissions=True)
 		for profile in self.profiles:
 			contact_name = find_linked_contact(profile.name)
 			if contact_name:
@@ -80,6 +86,18 @@ class TestCandidateClassificationFlow(FrappeTestCase):
 	# ------------------------------------------------------------------
 	# Scenarios
 	# ------------------------------------------------------------------
+
+	def test_import_batch_limits_candidate_selection(self):
+		included = self._create_profile(0, candidate_names=["Jane Tan"])
+		self._create_profile(1, candidate_names=["Alice Wong"])
+		import_run = frappe.get_doc({
+			"doctype": "Lead CSV Import Run", "country": "Singapore"
+		}).insert(ignore_permissions=True)
+		self.import_runs.append(import_run.name)
+		ensure_batch_membership(import_run.name, included.name, 2)
+
+		targets = classification_module._get_unclassified_rows(import_run=import_run.name)
+		self.assertEqual({row.parent for row in targets}, {included.name})
 
 	def test_recurring_name_is_blacklisted_and_never_sent_to_the_llm(self):
 		boilerplate = "Premium Growth Partners"
@@ -271,9 +289,11 @@ class TestCandidateClassificationFlow(FrappeTestCase):
 		own_profile_names = {p.name for p in self.profiles}
 		real_get_unclassified_rows = classification_module._get_unclassified_rows
 
-		def scoped_get_unclassified_rows(limit_rows=None):
+		def scoped_get_unclassified_rows(limit_rows=None, **target_filters):
 			return [
-				row for row in real_get_unclassified_rows(limit_rows=None) if row["parent"] in own_profile_names
+				row
+				for row in real_get_unclassified_rows(limit_rows=None, **target_filters)
+				if row["parent"] in own_profile_names
 			]
 
 		run = frappe.new_doc("Candidate Classification Run")

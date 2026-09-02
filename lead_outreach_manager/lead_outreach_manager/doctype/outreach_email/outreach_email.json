@@ -7,6 +7,7 @@
  "engine": "InnoDB",
  "field_order": [
   "status",
+  "import_run",
   "company_profile",
   "contact",
   "email_template",
@@ -44,6 +45,15 @@
    "options": "Draft\nReady to Send\nScheduled\nSent\nFailed\nCancelled",
    "read_only": 1,
    "reqd": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "import_run",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Import Batch",
+   "options": "Lead CSV Import Run",
+   "read_only": 1,
    "search_index": 1
   },
   {

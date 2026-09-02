@@ -6,6 +6,7 @@ from frappe.tests.utils import FrappeTestCase
 from lead_outreach_manager.services.candidate_names import apply_confirmation
 from lead_outreach_manager.services.contacts import find_linked_contact, get_or_create_generic_contact
 from lead_outreach_manager.services import outreach_generation as generation_module
+from lead_outreach_manager.services.csv_imports import ensure_batch_membership
 from lead_outreach_manager.services.outreach_generation import run_background_generation
 
 TEST_PREFIX = "TEST-LOM-GENERATE"
@@ -17,6 +18,7 @@ class TestOutreachGeneration(FrappeTestCase):
 		self.runs = []
 		self.outreach_emails = []
 		self.communications = []
+		self.import_runs = []
 		self._cleanup_stale()  # defensive: survive a prior run's incomplete tearDown
 		self.template_name = self._get_or_create_shared_template()
 
@@ -30,10 +32,16 @@ class TestOutreachGeneration(FrappeTestCase):
 				frappe.delete_doc("Communication", outreach.communication, force=True, ignore_permissions=True)
 			frappe.delete_doc("Outreach Email", outreach.name, force=True, ignore_permissions=True)
 		for profile in self.profiles:
+			for member in frappe.get_all(
+				"Lead Import Batch Member", filters={"company_profile": profile.name}, pluck="name"
+			):
+				frappe.delete_doc("Lead Import Batch Member", member, force=True, ignore_permissions=True)
 			contact_name = find_linked_contact(profile.name)
 			if contact_name:
 				frappe.delete_doc("Contact", contact_name, force=True, ignore_permissions=True)
 			frappe.delete_doc("Company Profile", profile.name, force=True, ignore_permissions=True)
+		for run in self.import_runs:
+			frappe.delete_doc("Lead CSV Import Run", run, force=True, ignore_permissions=True)
 		frappe.delete_doc("Email Template", self.template_name, force=True, ignore_permissions=True)
 		# FrappeTestCase does not auto-commit or auto-rollback per test — cleanup
 		# only sticks if explicitly committed here.
@@ -56,7 +64,7 @@ class TestOutreachGeneration(FrappeTestCase):
 			self.assertEqual(len(outreach), 1)
 			self.assertEqual(outreach[0].status, "Draft")
 
-	def test_do_not_contact_is_skipped_not_failed(self):
+	def test_do_not_contact_is_excluded_before_target_limit(self):
 		profile = self._auto_confirm(0, "Jane Tan")
 		profile.do_not_contact = 1
 		profile.save(ignore_permissions=True)
@@ -64,8 +72,9 @@ class TestOutreachGeneration(FrappeTestCase):
 		run_name = self._run_generation()
 
 		run = frappe.get_doc("Outreach Generation Run", run_name)
+		self.assertEqual(run.total_targets, 0)
 		self.assertEqual(run.generated_count, 0)
-		self.assertEqual(run.skipped_count, 1)
+		self.assertEqual(run.skipped_count, 0)
 		self.assertEqual(run.error_count, 0)
 		self.assertEqual(frappe.db.count("Outreach Email", {"company_profile": profile.name}), 0)
 
@@ -107,11 +116,30 @@ class TestOutreachGeneration(FrappeTestCase):
 		self.assertEqual(run.total_targets, 1)
 		self.assertEqual(run.generated_count, 1)
 
+	def test_import_batch_limits_generation_and_is_snapshotted(self):
+		included = self._auto_confirm(0, "Jane Tan")
+		excluded = self._auto_confirm(1, "Alice Wong")
+		import_run = frappe.get_doc({
+			"doctype": "Lead CSV Import Run", "country": "Singapore"
+		}).insert(ignore_permissions=True)
+		self.import_runs.append(import_run.name)
+		ensure_batch_membership(import_run.name, included.name, 2)
+
+		run_name = self._run_generation(import_run=import_run.name)
+
+		run = frappe.get_doc("Outreach Generation Run", run_name)
+		self.assertEqual(run.total_targets, 1)
+		outreach = frappe.get_all(
+			"Outreach Email", filters={"company_profile": included.name}, fields=["import_run"]
+		)
+		self.assertEqual(outreach[0].import_run, import_run.name)
+		self.assertEqual(frappe.db.count("Outreach Email", {"company_profile": excluded.name}), 0)
+
 	# ------------------------------------------------------------------
 	# Helpers
 	# ------------------------------------------------------------------
 
-	def _run_generation(self, limit_rows=None):
+	def _run_generation(self, limit_rows=None, import_run=None):
 		"""This site's DB is shared with real data — currently including a live
 		classification backfill producing real Auto Confirmed rows — so
 		without scoping here, run_background_generation's target query would
@@ -121,15 +149,18 @@ class TestOutreachGeneration(FrappeTestCase):
 		own_profile_names = {p.name for p in self.profiles}
 		real_get_targets = generation_module._get_auto_confirmed_targets
 
-		def scoped_get_targets(limit_rows=None):
+		def scoped_get_targets(limit_rows=None, **target_filters):
 			targets = [
-				t for t in real_get_targets(limit_rows=None) if t["company_profile"] in own_profile_names
+				t
+				for t in real_get_targets(limit_rows=None, **target_filters)
+				if t["company_profile"] in own_profile_names
 			]
 			return targets[:limit_rows] if limit_rows else targets
 
 		run = frappe.new_doc("Outreach Generation Run")
 		run.email_template = self.template_name
 		run.limit_rows = limit_rows
+		run.import_run = import_run
 		run.insert(ignore_permissions=True)
 		self.runs.append(run.name)
 		with mock.patch.object(generation_module, "_get_auto_confirmed_targets", side_effect=scoped_get_targets):

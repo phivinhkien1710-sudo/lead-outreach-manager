@@ -4,6 +4,9 @@
 const OUTREACH_GENERATION_UPDATE_EVENT = "outreach_generation_update";
 
 frappe.ui.form.on("Outreach Generation Run", {
+	setup(frm) {
+		set_completed_import_query(frm);
+	},
 	refresh(frm) {
 		if (frm.is_new()) {
 			return;
@@ -47,6 +50,12 @@ frappe.ui.form.on("Outreach Generation Run", {
 		}
 	},
 });
+
+function set_completed_import_query(frm) {
+	frm.set_query("import_run", () => ({
+		filters: { status: ["in", ["Completed", "Completed With Errors"]] },
+	}));
+}
 
 function register_generation_run_listener(frm) {
 	if (frm.__generation_run_listener_registered) {

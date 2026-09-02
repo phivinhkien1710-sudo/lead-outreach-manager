@@ -8,6 +8,7 @@
  "field_order": [
   "status",
   "filters_section",
+  "import_run",
   "filter_company_industry_tier",
   "filter_priority_tier",
   "rate_limit_section",
@@ -40,6 +41,15 @@
    "fieldname": "filters_section",
    "fieldtype": "Section Break",
    "label": "Target Filters (optional — blank means all eligible)"
+  },
+  {
+   "description": "Optional. Schedule only Ready to Send drafts generated for this CSV import batch.",
+   "fieldname": "import_run",
+   "fieldtype": "Link",
+   "in_list_view": 1,
+   "label": "Import Batch",
+   "options": "Lead CSV Import Run",
+   "search_index": 1
   },
   {
    "fieldname": "filter_company_industry_tier",

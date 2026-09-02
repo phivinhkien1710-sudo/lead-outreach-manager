@@ -12,7 +12,8 @@ import frappe
 
 def execute(filters=None):
 	filters = filters or {}
-	return get_columns(), get_data(filters)
+	data = get_data(filters)
+	return get_columns(), data, None, get_chart(data), get_report_summary(data)
 
 
 def get_columns():
@@ -29,6 +30,18 @@ def get_columns():
 			"fieldname": "entity_name",
 			"fieldtype": "Data",
 			"width": 220,
+		},
+		{
+			"label": "Country",
+			"fieldname": "country",
+			"fieldtype": "Data",
+			"width": 100,
+		},
+		{
+			"label": "Industry Tier",
+			"fieldname": "industry_tier",
+			"fieldtype": "Data",
+			"width": 120,
 		},
 		{
 			"label": "Candidate Name",
@@ -101,6 +114,14 @@ def get_data(filters):
 		"ccn.classification_status = %(classification_status)s",
 	]
 	values = {"classification_status": status}
+	if clean_text(filters.get("import_run")):
+		conditions.append("""
+			EXISTS (
+				SELECT 1 FROM `tabLead Import Batch Member` lbm
+				WHERE lbm.import_run = %(import_run)s AND lbm.company_profile = ccn.parent
+			)
+		""")
+		values["import_run"] = clean_text(filters.get("import_run"))
 
 	if status == "Needs Review":
 		# A human can confirm a Needs Review row directly via the Company
@@ -130,11 +151,21 @@ def get_data(filters):
 		conditions.append("cp.industry_tier = %(industry_tier)s")
 		values["industry_tier"] = clean_text(filters.get("industry_tier"))
 
+	if clean_text(filters.get("company_name")):
+		conditions.append("cp.entity_name LIKE %(company_name)s")
+		values["company_name"] = f"%{clean_text(filters.get('company_name'))}%"
+
+	if clean_text(filters.get("country")):
+		conditions.append("cp.country = %(country)s")
+		values["country"] = clean_text(filters.get("country"))
+
 	return frappe.db.sql(
 		f"""
 		SELECT
 			ccn.parent AS company_profile,
 			cp.entity_name,
+			cp.country,
+			cp.industry_tier,
 			ccn.name_text,
 			ccn.title_text,
 			ccn.classification_status,
@@ -153,6 +184,44 @@ def get_data(filters):
 		values,
 		as_dict=True,
 	)
+
+
+def get_chart(data):
+	countries = ["Singapore", "Vietnam"]
+	counts = {country: 0 for country in countries}
+	for row in data:
+		country = row.get("country") or "Unspecified"
+		counts[country] = counts.get(country, 0) + 1
+	labels = [*countries, *sorted(country for country in counts if country not in countries)]
+	return {
+		"data": {"labels": labels, "datasets": [{"name": "Candidates", "values": [counts[x] for x in labels]}]},
+		"type": "bar",
+		"colors": ["#2490ef"],
+	}
+
+
+def get_report_summary(data):
+	return [
+		{"label": "Candidates", "value": len(data), "indicator": "Blue", "datatype": "Int"},
+		{
+			"label": "Singapore",
+			"value": sum(1 for row in data if row.get("country") == "Singapore"),
+			"indicator": "Green",
+			"datatype": "Int",
+		},
+		{
+			"label": "Vietnam",
+			"value": sum(1 for row in data if row.get("country") == "Vietnam"),
+			"indicator": "Orange",
+			"datatype": "Int",
+		},
+		{
+			"label": "Confirmed",
+			"value": sum(1 for row in data if row.get("confirmed")),
+			"indicator": "Green",
+			"datatype": "Int",
+		},
+	]
 
 
 def clean_text(value):

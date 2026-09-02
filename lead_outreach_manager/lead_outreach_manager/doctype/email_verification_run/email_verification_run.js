@@ -4,6 +4,9 @@
 const VERIFICATION_RUN_UPDATE_EVENT = "email_verification_update";
 
 frappe.ui.form.on("Email Verification Run", {
+	setup(frm) {
+		set_completed_import_query(frm);
+	},
 	refresh(frm) {
 		if (frm.is_new()) {
 			return;
@@ -13,7 +16,7 @@ frappe.ui.form.on("Email Verification Run", {
 			frm.add_custom_button(__("Start Verification"), () => {
 				frappe.confirm(
 					__(
-						"This will check every pending confirmed candidate's guessed emails against the verification API, and promote any that come back deliverable to the outreach recipient. Continue?"
+						"This will check pending confirmed candidates in the selected import batch (or all pending candidates when blank) and promote deliverable results. Continue?"
 					),
 					() => {
 						frappe.call({
@@ -47,6 +50,12 @@ frappe.ui.form.on("Email Verification Run", {
 		}
 	},
 });
+
+function set_completed_import_query(frm) {
+	frm.set_query("import_run", () => ({
+		filters: { status: ["in", ["Completed", "Completed With Errors"]] },
+	}));
+}
 
 function register_verification_run_listener(frm) {
 	if (frm.__verification_run_listener_registered) {

@@ -17,6 +17,7 @@ class TestOutreachBatchScheduling(FrappeTestCase):
 		self.contacts = []
 		self.outreach_emails = []
 		self.communications = []
+		self.import_runs = []
 
 		self._cleanup_stale()  # defensive: survive a prior run's incomplete tearDown
 
@@ -49,6 +50,8 @@ class TestOutreachBatchScheduling(FrappeTestCase):
 			frappe.delete_doc("Contact", contact.name, force=True, ignore_permissions=True)
 		for profile in self.profiles:
 			frappe.delete_doc("Company Profile", profile.name, force=True, ignore_permissions=True)
+		for import_run in self.import_runs:
+			frappe.delete_doc("Lead CSV Import Run", import_run, force=True, ignore_permissions=True)
 		frappe.delete_doc("Email Template", f"{TEST_PREFIX}-TEMPLATE", force=True, ignore_permissions=True)
 		frappe.db.commit()  # FrappeTestCase doesn't auto-commit/rollback per test
 
@@ -71,6 +74,24 @@ class TestOutreachBatchScheduling(FrappeTestCase):
 		).total_seconds()
 		expected_gap = 3600 / batch.rate_limit_per_hour
 		self.assertAlmostEqual(gap_seconds, expected_gap, delta=1)
+
+	def test_import_batch_schedules_only_matching_drafts(self):
+		import_run = frappe.get_doc({
+			"doctype": "Lead CSV Import Run", "country": "Singapore"
+		}).insert(ignore_permissions=True)
+		self.import_runs.append(import_run.name)
+		self.outreach_emails[0].import_run = import_run.name
+		self.outreach_emails[0].save(ignore_permissions=True)
+		self.batch.import_run = import_run.name
+		self.batch.save(ignore_permissions=True)
+
+		run_background_batch_scheduling(self.batch.name)
+
+		batch = frappe.get_doc("Outreach Batch", self.batch.name)
+		self.assertEqual(batch.total_targets, 1)
+		self.assertEqual(batch.scheduled_count, 1)
+		self.assertEqual(frappe.db.get_value("Outreach Email", self.outreach_emails[0].name, "status"), "Scheduled")
+		self.assertEqual(frappe.db.get_value("Outreach Email", self.outreach_emails[1].name, "status"), "Ready to Send")
 
 	def _cleanup_stale(self):
 		from lead_outreach_manager.services.contacts import find_linked_contact
