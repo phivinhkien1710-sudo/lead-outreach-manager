@@ -80,6 +80,40 @@ directly (up to 6 API calls per candidate).
 `imports/vietnam_lead_imports.py` default `sqlite_path` to a personal absolute path from development.
 Always pass `sqlite_path` explicitly against your own source database (see README's "Importing leads").
 
+## Restoring a data handoff
+
+If you received a data backup alongside this app (a set of `*-database.sql.gz` / `*-files.tar` /
+`*-private-files.tar` files), it was sent through a private channel deliberately — never committed to
+this public repo or attached to a public GitHub Release, since it contains real company and contact
+data. After running `install.sh`:
+
+```bash
+./restore-data.sh /path/to/the/backup/directory
+```
+
+This restores the database and files into the site `install.sh` just created. It deliberately does
+**not** carry over the original sender Email Account or email-verification API key — those were
+cleared before the backup was made, since they belonged to whoever ran this before you. Open **Outreach
+Settings** afterward and fill in your own.
+
+## Automated backups
+
+The Docker install from `install.sh` already includes a scheduled backup, running independently of
+this site's own scheduler: a bundled cron container (`ofelia`) runs `bench --site all backup` every
+6 hours, writing into the site's `private/backups` folder inside the same Docker volume. Nothing
+further needs configuring for that install path.
+
+If you instead deployed via `bench setup production` (supervisor + nginx, no bundled cron container),
+this app's own `lead_outreach_manager.tasks.daily_backup_site` scheduled task covers the same need —
+registered in `hooks.py`, it runs once a day as long as the site's scheduler is enabled (see the
+Install section above). Either mechanism is sufficient on its own; having both active at once (e.g.
+mid-migration between the two deployment styles) is harmless, since each skips creating a new backup
+if one already exists from within the last 6 hours.
+
+Neither mechanism moves backups off the machine they're created on. For anything beyond "survives an
+accidental `DROP TABLE`," periodically copy the backup files somewhere else — this package doesn't
+automate offsite storage.
+
 ## Verifying a fresh install
 
 Before trusting this package, prove it actually installs clean:

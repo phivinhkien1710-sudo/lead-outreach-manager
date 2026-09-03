@@ -152,6 +152,9 @@ scheduler_events = {
 	"hourly": [
 		"lead_outreach_manager.tasks.hourly_reconcile_outreach_email_status",
 	],
+	"daily": [
+		"lead_outreach_manager.tasks.daily_backup_site",
+	],
 }
 
 # Testing

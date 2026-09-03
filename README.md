@@ -138,33 +138,47 @@ free disk space.
 **1. Install Docker**, if you don't have it already.
 - **Mac**: install [Docker Desktop](https://www.docker.com/products/docker-desktop/), open it once so
   it's running, then continue.
-- **Linux (Ubuntu/Debian)**: the installer script below can install Docker for you automatically — skip
-  this step.
+- **Linux (Ubuntu/Debian)**: the installer can install Docker for you automatically — skip this step.
 - **Windows**: install [WSL2](https://learn.microsoft.com/windows/wsl/install) first, then Docker
   Desktop with WSL2 integration enabled. This path has more moving parts than Mac/Linux — if you get
   stuck, that's the point to hand this off to someone technical rather than push through alone.
 
 **2. Open a terminal.** Mac: press `Cmd+Space`, type `Terminal`, hit Enter. Ubuntu: `Ctrl+Alt+T`.
 
-**3. Download Frappe's installer script:**
+**3. Download and run `install.sh`** — this repo's one-command installer. It downloads Frappe's own
+official installer, builds this app into it, creates a site, and starts everything running. It's the
+slow step (10–20 minutes), and it's the only command you need to type:
 ```bash
-curl -O https://raw.githubusercontent.com/frappe/bench/develop/easy-install.py
+curl -fsSL https://raw.githubusercontent.com/phivinhkien1710-sudo/lead-outreach-manager/v1.0.0/install.sh | bash
 ```
 
-**4. In the same folder, create a file named `apps.json`** (any plain text editor works) with exactly
-this content — it just tells the installer where to get this app's code:
-```json
+**4. Find the generated password.** The script saves a random Administrator password to
+`~/passwords.txt` on your computer — open that file to find it.
+
+**5. Open your browser to `http://localhost:8080`** and log in as `Administrator` with that password.
+
+**If it fails partway through**: the script logs everything to `~/easy-install.log` — that file is
+what a technical person will want to see if you need to ask for help. This is a real installer doing
+real work, not a guaranteed-to-succeed wizard; failures are more likely on unusual machines (very low
+RAM/disk, restrictive corporate security software) than on a normal personal computer.
+
+**If you were handed a data backup separately** (through a private channel — never from this public
+repo, since it contains real company/contact data), run `./restore-data.sh /path/to/that/backup` next;
+see `docs/DEPLOYMENT.md`'s "Restoring a data handoff" section for details.
+
+<details>
+<summary>What <code>install.sh</code> does, if you'd rather run the steps yourself</summary>
+
+```bash
+curl -O https://raw.githubusercontent.com/frappe/bench/develop/easy-install.py
+cat > apps.json <<'JSON'
 [
   {
     "url": "https://github.com/phivinhkien1710-sudo/lead-outreach-manager",
-    "branch": "develop"
+    "branch": "v1.0.0"
   }
 ]
-```
-
-**5. Run the installer.** This one command downloads Frappe, builds this app into it, creates a site,
-and starts everything — it's the slow step (10–20 minutes):
-```bash
+JSON
 python3 easy-install.py build \
   --project lead-outreach \
   --apps-json apps.json \
@@ -175,22 +189,14 @@ python3 easy-install.py build \
   --email you@example.com \
   --deploy
 ```
-What each part means: `--apps-json`/`--app` — this app's code, from step 4. `--sitename` — the site's
-internal name, can stay as-is or be anything you like. `--no-ssl --http-port 8080` — serves plain
-`http://` on port 8080 rather than needing a real domain and HTTPS certificate (fine for trying this
-out; a real deployment with a domain is a separate, more advanced step — see `docs/DEPLOYMENT.md`).
-`--email` — only used for HTTPS certificate renewal notices; put a real address you check, or leave
-the default if using `--no-ssl`. `--deploy` — start it up once the build finishes.
-
-**6. Find the generated password.** The script saves a random Administrator password to
-`~/passwords.txt` on your computer — open that file to find it.
-
-**7. Open your browser to `http://localhost:8080`** and log in as `Administrator` with that password.
-
-**If it fails partway through**: the script logs everything to `~/easy-install.log` — that file is
-what a technical person will want to see if you need to ask for help. This is a real installer doing
-real work, not a guaranteed-to-succeed wizard; failures are more likely on unusual machines (very low
-RAM/disk, restrictive corporate security software) than on a normal personal computer.
+`--sitename` — the site's internal name, can stay as-is or be anything you like. `--no-ssl
+--http-port 8080` — serves plain `http://` on port 8080 rather than needing a real domain and HTTPS
+certificate (fine for trying this out; a real deployment with a domain is a separate, more advanced
+step — see `docs/DEPLOYMENT.md`). `--email` — only used for HTTPS certificate renewal notices, ignored
+when using `--no-ssl`. `--deploy` — start it up once the build finishes. `install.sh` runs exactly
+this, with each value overridable via an environment variable (`LOM_SITENAME`, `LOM_HTTP_PORT`, etc. —
+see the comments at the top of the script).
+</details>
 
 Once it's running, continue with the configuration steps below (Email Account, Email Template,
 Outreach Settings) — then see `docs/USER_GUIDE.md` for how to actually use the app day to day.
