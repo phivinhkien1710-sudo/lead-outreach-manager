@@ -21,7 +21,8 @@
 set -euo pipefail
 
 REPO_URL="${LOM_REPO_URL:-https://github.com/phivinhkien1710-sudo/lead-outreach-manager}"
-BRANCH="${LOM_BRANCH:-v1.1.0}"
+BRANCH="${LOM_BRANCH:-v1.1.1}"
+ERPNEXT_BRANCH="${LOM_ERPNEXT_BRANCH:-version-15}"
 PROJECT="${LOM_PROJECT:-lead-outreach}"
 SITENAME="${LOM_SITENAME:-lead-outreach.local}"
 HTTP_PORT="${LOM_HTTP_PORT:-8080}"
@@ -53,8 +54,18 @@ if [ ! -f easy-install.py ]; then
 	curl -fsSL -O https://raw.githubusercontent.com/frappe/bench/develop/easy-install.py
 fi
 
+# ERPNext is included deliberately, even though this app's own doctypes don't
+# depend on it: the site this app's data comes from has erpnext installed, so a
+# database restored from it lists erpnext in its installed apps. Without the
+# erpnext package present, `bench migrate` after a restore dies with
+# "No module named 'erpnext'" and the site is left half-restored. Found by
+# actually restoring a real backup into a build that omitted it.
 cat >apps.json <<JSON
 [
+  {
+    "url": "https://github.com/frappe/erpnext",
+    "branch": "${ERPNEXT_BRANCH}"
+  },
   {
     "url": "${REPO_URL}",
     "branch": "${BRANCH}"
@@ -89,6 +100,7 @@ echo "Building and starting everything — this is the slow step (10-20 minutes)
 python3 easy-install.py build \
 	--project "$PROJECT" \
 	--apps-json apps.json \
+	--app erpnext \
 	--app lead_outreach_manager \
 	--sitename "$SITENAME" \
 	--no-ssl \
