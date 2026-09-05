@@ -62,6 +62,29 @@ cat >apps.json <<JSON
 ]
 JSON
 
+# Python installed from python.org on macOS has no access to the system
+# keychain's root certificates, so easy-install.py's HTTPS fetch of
+# frappe_docker dies with "CERTIFICATE_VERIFY_FAILED: unable to get local
+# issuer certificate" — and then reports the far more confusing
+# "No such file or directory: 'frappe_docker'" as the actual error, which
+# tells you nothing about the real cause. Hit for real on a clean Mac.
+if [ -z "$(python3 -c 'import ssl; print(ssl.get_default_verify_paths().cafile or "")' 2>/dev/null)" ]; then
+	CERTIFI_PEM=$(python3 -c 'import certifi; print(certifi.where())' 2>/dev/null || true)
+	if [ -n "$CERTIFI_PEM" ]; then
+		export SSL_CERT_FILE="$CERTIFI_PEM"
+		export REQUESTS_CA_BUNDLE="$CERTIFI_PEM"
+		echo "Note: Python had no CA bundle configured; using certifi's ($CERTIFI_PEM)."
+	else
+		cat <<'CERTWARN'
+WARNING: Python has no root certificates configured and certifi isn't installed,
+so the download step below will likely fail with CERTIFICATE_VERIFY_FAILED.
+Fix it with either of these, then re-run this script:
+  open "/Applications/Python 3.12/Install Certificates.command"
+  python3 -m pip install certifi
+CERTWARN
+	fi
+fi
+
 echo "Building and starting everything — this is the slow step (10-20 minutes)..."
 python3 easy-install.py build \
 	--project "$PROJECT" \
