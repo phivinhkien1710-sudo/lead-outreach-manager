@@ -21,7 +21,7 @@
 set -euo pipefail
 
 REPO_URL="${LOM_REPO_URL:-https://github.com/phivinhkien1710-sudo/lead-outreach-manager}"
-BRANCH="${LOM_BRANCH:-v1.0.0}"
+BRANCH="${LOM_BRANCH:-v1.1.0}"
 PROJECT="${LOM_PROJECT:-lead-outreach}"
 SITENAME="${LOM_SITENAME:-lead-outreach.local}"
 HTTP_PORT="${LOM_HTTP_PORT:-8080}"

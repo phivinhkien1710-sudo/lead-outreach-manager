@@ -149,7 +149,7 @@ free disk space.
 official installer, builds this app into it, creates a site, and starts everything running. It's the
 slow step (10–20 minutes), and it's the only command you need to type:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/phivinhkien1710-sudo/lead-outreach-manager/v1.0.0/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/phivinhkien1710-sudo/lead-outreach-manager/v1.1.0/install.sh | bash
 ```
 
 **4. Find the generated password.** The script saves a random Administrator password to
@@ -175,7 +175,7 @@ cat > apps.json <<'JSON'
 [
   {
     "url": "https://github.com/phivinhkien1710-sudo/lead-outreach-manager",
-    "branch": "v1.0.0"
+    "branch": "v1.1.0"
   }
 ]
 JSON
