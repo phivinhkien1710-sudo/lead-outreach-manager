@@ -174,15 +174,15 @@ class TestOutreachEmailFlow(FrappeTestCase):
 
 		# Still sendable at this point — a dry run must report it as such and
 		# change nothing.
-		dry = cancel_uncontactable_drafts(dry_run=True)
+		dry = cancel_uncontactable_drafts(dry_run=True, company_profile=self.profile.name)
 		self.assertTrue(dry["dry_run"])
 		self.assertEqual(frappe.db.get_value("Outreach Email", outreach_name, "status"), "Draft")
 
 		# Now make it uncontactable the same way real drift would.
 		self.profile.db_set("do_not_contact", 1)
 
-		summary = cancel_uncontactable_drafts()
-		self.assertGreaterEqual(summary["cancelled"], 1)
+		summary = cancel_uncontactable_drafts(company_profile=self.profile.name)
+		self.assertEqual(summary["cancelled"], 1)
 		self.assertIn("do_not_contact", summary["by_reason"])
 
 		cancelled = frappe.get_doc("Outreach Email", outreach_name)

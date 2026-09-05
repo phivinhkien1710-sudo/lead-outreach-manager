@@ -261,7 +261,7 @@ def _categorise_block_reason(reason):
 	return "other"
 
 
-def cancel_uncontactable_drafts(dry_run=False):
+def cancel_uncontactable_drafts(dry_run=False, company_profile=None, import_run=None):
 	"""Cancel every Draft whose contact can no longer legitimately be emailed.
 
 	Deliberately reuses check_can_contact() rather than re-testing verification
@@ -281,6 +281,7 @@ def cancel_uncontactable_drafts(dry_run=False):
 	"""
 	summary = {
 		"dry_run": bool(dry_run),
+		"scope": {"company_profile": company_profile, "import_run": import_run},
 		"drafts_checked": 0,
 		"cancelled": 0,
 		"still_sendable": 0,
@@ -288,9 +289,20 @@ def cancel_uncontactable_drafts(dry_run=False):
 		"by_reason": {},
 	}
 
+	# Unscoped, this touches every Draft on the site — which is the point when
+	# run as a maintenance command, and a hazard everywhere else. Tests in
+	# particular must scope to their own fixtures: an earlier version of this
+	# function had no filters, and the test exercising it cancelled 419 real
+	# drafts on a live site as a side effect of running the suite.
+	filters = {"status": "Draft"}
+	if company_profile:
+		filters["company_profile"] = company_profile
+	if import_run:
+		filters["import_run"] = import_run
+
 	rows = frappe.get_all(
 		"Outreach Email",
-		filters={"status": "Draft"},
+		filters=filters,
 		fields=["name", "company_profile", "contact"],
 		order_by="name",
 		limit_page_length=0,
