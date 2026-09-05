@@ -13,6 +13,10 @@
   "email_template",
   "communication",
   "recipient_email",
+  "verification_section",
+  "verification_status",
+  "verification_result",
+  "verified_on",
   "subject",
   "send_after",
   "guessed_emails_section",
@@ -117,7 +121,7 @@
    "label": "Guessed Emails (informational only)"
   },
   {
-   "description": "Snapshot, at generation time, of the confirmed candidate's guessed_email_1-6 (see Company Candidate Name). Informational only — never applied as the recipient automatically; only a human Confirm Name click can promote a guess to the real recipient.",
+   "description": "Snapshot, at generation time, of the confirmed candidate's guessed_email_1-6 (see Company Candidate Name). Informational only \u2014 never applied as the recipient automatically; only a human Confirm Name click can promote a guess to the real recipient.",
    "fieldname": "guessed_email_1",
    "fieldtype": "Data",
    "label": "Guessed Email 1",
@@ -232,12 +236,39 @@
    "fieldtype": "Small Text",
    "label": "Blocked Reason",
    "read_only": 1
+  },
+  {
+   "fieldname": "verification_section",
+   "fieldtype": "Section Break",
+   "label": "Email Verification"
+  },
+  {
+   "fieldname": "verification_status",
+   "fieldtype": "Data",
+   "label": "Verification Status",
+   "read_only": 1,
+   "in_list_view": 1,
+   "search_index": 1,
+   "description": "Snapshotted from the confirmed candidate's verification result at the moment this draft was generated. Not live -- if verification runs again after this draft exists, this does not update automatically."
+  },
+  {
+   "fieldname": "verification_result",
+   "fieldtype": "Data",
+   "label": "Verification Result (raw)",
+   "read_only": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "verified_on",
+   "fieldtype": "Datetime",
+   "label": "Verified On",
+   "read_only": 1
   }
  ],
  "grid_page_length": 50,
  "index_web_pages_for_search": 1,
  "links": [],
- "modified": "2026-07-13 00:00:00.000000",
+ "modified": "2026-09-05 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "lead_outreach_manager",
  "name": "Outreach Email",

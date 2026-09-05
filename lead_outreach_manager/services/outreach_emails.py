@@ -26,6 +26,8 @@ GUESSED_EMAIL_FIELDS = [
 	for field in (f"guessed_email_{i}", f"guessed_pattern_{i}")
 ]
 
+VERIFICATION_SNAPSHOT_FIELDS = ["verification_status", "verification_result", "verified_on"]
+
 
 def create_outreach_email(company_profile, contact, email_template=None, import_run=None):
 	profile = frappe.get_doc("Company Profile", company_profile)
@@ -72,6 +74,7 @@ def create_outreach_email(company_profile, contact, email_template=None, import_
 	outreach.generated_by = frappe.session.user
 	outreach.generated_on = frappe.utils.now_datetime()
 	_copy_guessed_emails(outreach, contact_doc.name)
+	_copy_verification_status(outreach, contact_doc.name)
 	outreach.insert(ignore_permissions=True)
 
 	return {"outreach_email": outreach.name, "communication": communication_name}
@@ -166,6 +169,33 @@ def check_can_contact(profile, contact_doc):
 		frappe.throw(f"Contact {contact_doc.name} has unsubscribed.")
 	if not profile.has_email_contact and not has_verified_email(contact_doc):
 		frappe.throw(f"{profile.entity_name} has no email contact point.")
+	if get_confirmed_verification_status(contact_doc.name) == "Not Deliverable":
+		frappe.throw(
+			f"Every guessed email for {contact_doc.name} was checked by email "
+			"verification and found not deliverable. Confirm a different "
+			"candidate name for this company, or review it in the Email "
+			"Verification Review Queue, before generating outreach."
+		)
+
+
+def get_confirmed_verification_status(contact_name):
+	"""verification_status of the most recently confirmed Company Candidate
+	Name row for this contact, or None if verification never ran.
+
+	"Not Deliverable" is a row-level conclusion — email_verification.py tries
+	guessed_email_1 through _6 in order and only reaches it once every one of
+	them failed — so, unlike has_verified_email()'s "Verified" check, this
+	deliberately does not also require verified_email to match whichever
+	guess currently sits on Contact.email_id. If none of the six guesses were
+	deliverable, the one Confirm Name promoted (always guessed_email_1) was
+	necessarily one of the ones tried and rejected.
+	"""
+	return frappe.db.get_value(
+		"Company Candidate Name",
+		{"contact": contact_name, "confirmed": 1},
+		"verification_status",
+		order_by="confirmed_on desc",
+	)
 
 
 def has_verified_email(contact_doc) -> bool:
@@ -214,6 +244,58 @@ def _copy_guessed_emails(outreach, contact_name):
 	if not row:
 		return
 	outreach.update(row)
+
+
+def _copy_verification_status(outreach, contact_name):
+	"""Snapshots the confirmed row's verification result onto the new Outreach
+	Email, so a reviewer sees whether this recipient was ever checked without
+	cross-referencing Company Candidate Name separately — that gap (a draft
+	could be generated and approved with no visible indication its address
+	was already known undeliverable) is what this whole function exists to
+	close. A snapshot, not live: if verification runs again after this draft
+	exists, this field does not update on its own (same limitation as
+	_copy_guessed_emails)."""
+	row = frappe.db.get_value(
+		"Company Candidate Name",
+		{"contact": contact_name, "confirmed": 1},
+		VERIFICATION_SNAPSHOT_FIELDS,
+		as_dict=True,
+		order_by="confirmed_on desc",
+	)
+	if not row:
+		return
+	outreach.update(row)
+
+
+def backfill_verification_status():
+	"""One-off cleanup for Outreach Email records created before
+	_copy_verification_status existed. Purely informational — does not touch
+	recipient_email and does not reject or otherwise act on any existing
+	draft, even ones this reveals were already known Not Deliverable; that's
+	a separate decision for a human to make with the now-visible field.
+	bench execute lead_outreach_manager.services.outreach_emails.backfill_verification_status
+	"""
+	rows = frappe.db.sql(
+		"""SELECT name, contact FROM `tabOutreach Email`
+		WHERE IFNULL(verification_status, '') = ''""",
+		as_dict=True,
+	)
+	fixed = 0
+	for row in rows:
+		snapshot = frappe.db.get_value(
+			"Company Candidate Name",
+			{"contact": row.contact, "confirmed": 1},
+			VERIFICATION_SNAPSHOT_FIELDS,
+			as_dict=True,
+			order_by="confirmed_on desc",
+		)
+		if not snapshot:
+			continue
+		frappe.db.set_value("Outreach Email", row.name, snapshot)
+		fixed += 1
+
+	frappe.db.commit()
+	return {"fixed": fixed, "total_checked": len(rows)}
 
 
 def backfill_guessed_emails():

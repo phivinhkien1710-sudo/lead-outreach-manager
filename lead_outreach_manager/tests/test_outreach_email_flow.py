@@ -87,6 +87,85 @@ class TestOutreachEmailFlow(FrappeTestCase):
 		# same safety rule as everywhere else in the app.
 		self.assertEqual(outreach.recipient_email, "info@testflow.example")
 
+	def test_generation_blocked_when_confirmed_candidate_is_not_deliverable(self):
+		"""The core bug this guards against: a company with a generic email
+		contact point (has_email_contact=1, set on every profile in this
+		file's fixture) used to let generation through regardless of whether
+		the specific guessed address that gets promoted to Contact.email_id
+		was ever checked — including when it was checked and failed."""
+		self.profile.domain = "testflow.example"
+		self.profile.append(
+			"candidate_names",
+			{"name_text": "Jane Tan", "title_text": "Director", "source_document_id": 1},
+		)
+		self.profile.save(ignore_permissions=True)
+		row = self.profile.candidate_names[0]
+		apply_confirmation(self.profile, row, source="Human", redirect_to_top_guess=True)
+		self.profile.save(ignore_permissions=True)
+
+		frappe.db.set_value(
+			"Company Candidate Name",
+			row.name,
+			{"verification_status": "Not Deliverable", "verified_on": frappe.utils.now_datetime()},
+		)
+
+		with self.assertRaises(frappe.ValidationError):
+			create_outreach_email(self.profile.name, self.contact.name, self.template.name)
+
+	def test_verification_status_snapshotted_onto_generated_email(self):
+		self.profile.domain = "testflow.example"
+		self.profile.append(
+			"candidate_names",
+			{"name_text": "Jane Tan", "title_text": "Director", "source_document_id": 1},
+		)
+		self.profile.save(ignore_permissions=True)
+		row = self.profile.candidate_names[0]
+		apply_confirmation(self.profile, row, source="Auto - LLM")
+		self.profile.save(ignore_permissions=True)
+
+		verified_on = frappe.utils.now_datetime()
+		frappe.db.set_value(
+			"Company Candidate Name",
+			row.name,
+			{
+				"verification_status": "Catch-All",
+				"verification_result": "catch_all",
+				"verified_on": verified_on,
+			},
+		)
+
+		result = create_outreach_email(self.profile.name, self.contact.name, self.template.name)
+		outreach = frappe.get_doc("Outreach Email", result["outreach_email"])
+
+		self.assertEqual(outreach.verification_status, "Catch-All")
+		self.assertEqual(outreach.verification_result, "catch_all")
+		self.assertEqual(outreach.verified_on, verified_on)
+
+	def test_approval_reblocked_if_verification_turns_bad_after_generation(self):
+		"""check_can_contact() re-runs at approval time specifically so state
+		drift between generate and approve is caught — this is that same
+		mechanism now also catching a verification result that arrived late."""
+		self.profile.domain = "testflow.example"
+		self.profile.append(
+			"candidate_names",
+			{"name_text": "Jane Tan", "title_text": "Director", "source_document_id": 1},
+		)
+		self.profile.save(ignore_permissions=True)
+		row = self.profile.candidate_names[0]
+		apply_confirmation(self.profile, row, source="Human", redirect_to_top_guess=True)
+		self.profile.save(ignore_permissions=True)
+
+		result = create_outreach_email(self.profile.name, self.contact.name, self.template.name)
+
+		frappe.db.set_value(
+			"Company Candidate Name",
+			row.name,
+			{"verification_status": "Not Deliverable", "verified_on": frappe.utils.now_datetime()},
+		)
+
+		with self.assertRaises(frappe.ValidationError):
+			approve_outreach_email(result["outreach_email"])
+
 	def _cleanup_stale(self):
 		from lead_outreach_manager.services.contacts import find_linked_contact
 
