@@ -246,6 +246,90 @@ def _copy_guessed_emails(outreach, contact_name):
 	outreach.update(row)
 
 
+def _categorise_block_reason(reason):
+	"""Coarse bucket for a check_can_contact() failure, for summary counts only.
+	The verbatim message is what actually gets stored on the record."""
+	lowered = reason.lower()
+	if "do not contact" in lowered:
+		return "do_not_contact"
+	if "unsubscribed" in lowered:
+		return "unsubscribed"
+	if "not deliverable" in lowered:
+		return "not_deliverable"
+	if "no email contact point" in lowered:
+		return "no_email_contact_point"
+	return "other"
+
+
+def cancel_uncontactable_drafts(dry_run=False):
+	"""Cancel every Draft whose contact can no longer legitimately be emailed.
+
+	Deliberately reuses check_can_contact() rather than re-testing verification
+	status directly, so a draft is cancelled here for exactly the reason
+	schedule_send() would have refused to send it — one source of truth, and
+	the refusal message is recorded verbatim in blocked_reason. That also means
+	this picks up drift unrelated to verification for free: a profile marked
+	Do Not Contact, or a contact who unsubscribed, since generation.
+
+	Cancelled (not Failed) matches schedule_send()'s own handling of the same
+	condition; Failed is reserved for send-time delivery errors. The linked
+	Communication draft is left in place rather than deleted, so the record of
+	what would have been sent survives for audit.
+
+	bench execute lead_outreach_manager.services.outreach_emails.cancel_uncontactable_drafts --kwargs "{'dry_run': True}"
+	bench execute lead_outreach_manager.services.outreach_emails.cancel_uncontactable_drafts
+	"""
+	summary = {
+		"dry_run": bool(dry_run),
+		"drafts_checked": 0,
+		"cancelled": 0,
+		"still_sendable": 0,
+		"errors": 0,
+		"by_reason": {},
+	}
+
+	rows = frappe.get_all(
+		"Outreach Email",
+		filters={"status": "Draft"},
+		fields=["name", "company_profile", "contact"],
+		order_by="name",
+		limit_page_length=0,
+	)
+
+	for row in rows:
+		summary["drafts_checked"] += 1
+		try:
+			profile = frappe.get_doc("Company Profile", row.company_profile)
+			contact_doc = frappe.get_doc("Contact", row.contact)
+		except Exception:
+			summary["errors"] += 1
+			frappe.log_error(
+				title=f"Draft cancellation check failed: {row.name}",
+				message=frappe.get_traceback(),
+			)
+			continue
+
+		try:
+			check_can_contact(profile, contact_doc)
+			summary["still_sendable"] += 1
+		except frappe.ValidationError as exc:
+			reason = str(exc)
+			bucket = _categorise_block_reason(reason)
+			summary["by_reason"][bucket] = summary["by_reason"].get(bucket, 0) + 1
+			summary["cancelled"] += 1
+			if not dry_run:
+				frappe.db.set_value(
+					"Outreach Email",
+					row.name,
+					{"status": "Cancelled", "blocked_reason": reason},
+				)
+
+	if not dry_run:
+		frappe.db.commit()
+
+	return summary
+
+
 def _copy_verification_status(outreach, contact_name):
 	"""Snapshots the confirmed row's verification result onto the new Outreach
 	Email, so a reviewer sees whether this recipient was ever checked without

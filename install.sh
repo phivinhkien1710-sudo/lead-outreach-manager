@@ -21,8 +21,12 @@
 set -euo pipefail
 
 REPO_URL="${LOM_REPO_URL:-https://github.com/phivinhkien1710-sudo/lead-outreach-manager}"
-BRANCH="${LOM_BRANCH:-v1.1.1}"
+BRANCH="${LOM_BRANCH:-v1.1.2}"
 ERPNEXT_BRANCH="${LOM_ERPNEXT_BRANCH:-version-15}"
+# easy-install.py defaults to version-16. The data this app hands over comes
+# from a Frappe 15.60 / ERPNext 15.54 site, and restoring a v15 database onto a
+# v16 stack is not a supported upgrade path — pin the whole stack to match.
+FRAPPE_BRANCH="${LOM_FRAPPE_BRANCH:-version-15}"
 PROJECT="${LOM_PROJECT:-lead-outreach}"
 SITENAME="${LOM_SITENAME:-lead-outreach.local}"
 HTTP_PORT="${LOM_HTTP_PORT:-8080}"
@@ -44,6 +48,28 @@ Docker was not found on this computer. Install it first:
 - Linux: Frappe's own installer can install Docker for you automatically —
   it will attempt that in the next step, no action needed here.
 EOF
+fi
+
+# Re-running against a project name that already has containers doesn't start
+# clean — easy-install.py regenerates the compose file and runs
+# `up --force-recreate` against the EXISTING stack, which fails confusingly
+# ("pull access denied for custom-apps") when the old image no longer matches
+# what the new compose expects. Better to say so than to half-collide.
+if command -v docker >/dev/null 2>&1 && [ -n "$(docker ps -aq --filter "name=^${PROJECT}-" 2>/dev/null)" ]; then
+	cat <<EOF
+A Docker project named "$PROJECT" already exists on this machine.
+
+Re-running the installer against it will not give you a clean install. Either
+remove the old one (THIS DELETES ITS DATA):
+
+  docker compose -p $PROJECT -f ~/${PROJECT}-compose.yml down --volumes
+
+or install alongside it under different names:
+
+  LOM_PROJECT=${PROJECT}-2 LOM_SITENAME=${PROJECT}-2.local LOM_HTTP_PORT=8090 ./install.sh
+
+EOF
+	exit 1
 fi
 
 mkdir -p "$WORKDIR"
@@ -100,6 +126,7 @@ echo "Building and starting everything — this is the slow step (10-20 minutes)
 python3 easy-install.py build \
 	--project "$PROJECT" \
 	--apps-json apps.json \
+	--frappe-branch "$FRAPPE_BRANCH" \
 	--app erpnext \
 	--app lead_outreach_manager \
 	--sitename "$SITENAME" \

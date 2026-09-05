@@ -166,6 +166,31 @@ class TestOutreachEmailFlow(FrappeTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			approve_outreach_email(result["outreach_email"])
 
+	def test_cancel_uncontactable_drafts_cancels_bad_and_spares_good(self):
+		from lead_outreach_manager.services.outreach_emails import cancel_uncontactable_drafts
+
+		result = create_outreach_email(self.profile.name, self.contact.name, self.template.name)
+		outreach_name = result["outreach_email"]
+
+		# Still sendable at this point — a dry run must report it as such and
+		# change nothing.
+		dry = cancel_uncontactable_drafts(dry_run=True)
+		self.assertTrue(dry["dry_run"])
+		self.assertEqual(frappe.db.get_value("Outreach Email", outreach_name, "status"), "Draft")
+
+		# Now make it uncontactable the same way real drift would.
+		self.profile.db_set("do_not_contact", 1)
+
+		summary = cancel_uncontactable_drafts()
+		self.assertGreaterEqual(summary["cancelled"], 1)
+		self.assertIn("do_not_contact", summary["by_reason"])
+
+		cancelled = frappe.get_doc("Outreach Email", outreach_name)
+		self.assertEqual(cancelled.status, "Cancelled")
+		self.assertIn("Do Not Contact", cancelled.blocked_reason)
+		# The Communication is deliberately preserved for audit.
+		self.assertTrue(frappe.db.exists("Communication", cancelled.communication))
+
 	def _cleanup_stale(self):
 		from lead_outreach_manager.services.contacts import find_linked_contact
 
